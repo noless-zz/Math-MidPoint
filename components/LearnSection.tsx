@@ -1,18 +1,114 @@
 
-import React from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 const FormulaBox: React.FC<{ title: string; formula: string; explanation: string }> = ({ title, formula, explanation }) => (
     <div className="bg-indigo-50 dark:bg-indigo-900/50 border-r-4 border-indigo-500 p-6 rounded-lg">
         <h3 className="text-xl font-semibold text-indigo-800 dark:text-indigo-200">{title}</h3>
-        <div className="text-2xl font-mono my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center text-gray-800 dark:text-gray-100 shadow-inner">
+        <div className="text-2xl font-mono my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center text-gray-800 dark:text-gray-100 shadow-inner break-words">
             {formula}
         </div>
         <p className="text-indigo-700 dark:text-indigo-300">{explanation}</p>
     </div>
 );
 
+const VIEWBOX_SIZE = 200;
+const GRID_RANGE = 10;
+const PADDING = 15;
+const CONTENT_SIZE = VIEWBOX_SIZE - 2 * PADDING;
+
 // Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 export default function LearnSection(): React.ReactElement {
+  const [pointA, setPointA] = useState({ x: -6, y: -5 });
+  const [pointB, setPointB] = useState({ x: 4, y: 7 });
+  const [draggedPoint, setDraggedPoint] = useState<'A' | 'B' | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const pointM = {
+    x: (pointA.x + pointB.x) / 2,
+    y: (pointA.y + pointB.y) / 2,
+  };
+
+  const toSvgCoords = useCallback((p: {x: number, y: number}) => {
+    const x = PADDING + (p.x + GRID_RANGE) / (2 * GRID_RANGE) * CONTENT_SIZE;
+    const y = PADDING + (GRID_RANGE - p.y) / (2 * GRID_RANGE) * CONTENT_SIZE;
+    return { x, y };
+  }, []);
+
+  const fromSvgCoords = useCallback((svgX: number, svgY: number) => {
+    const x = ((svgX - PADDING) / CONTENT_SIZE) * (2 * GRID_RANGE) - GRID_RANGE;
+    const y = GRID_RANGE - ((svgY - PADDING) / CONTENT_SIZE) * (2 * GRID_RANGE);
+    return { x, y };
+  }, []);
+
+  const handleDragStart = (point: 'A' | 'B') => (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setDraggedPoint(point);
+  };
+
+  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!draggedPoint || !svgRef.current) return;
+    e.preventDefault();
+
+    const svg = svgRef.current;
+    const pt = svg.createSVGPoint();
+    const isTouchEvent = 'touches' in e;
+    pt.x = isTouchEvent ? e.touches[0].clientX : e.clientX;
+    pt.y = isTouchEvent ? e.touches[0].clientY : e.clientY;
+    
+    const svgPoint = pt.matrixTransform(svg.getScreenCTM()?.inverse());
+    const coords = fromSvgCoords(svgPoint.x, svgPoint.y);
+
+    const newPoint = {
+        x: Math.round(Math.max(-GRID_RANGE, Math.min(GRID_RANGE, coords.x))),
+        y: Math.round(Math.max(-GRID_RANGE, Math.min(GRID_RANGE, coords.y))),
+    };
+
+    if (draggedPoint === 'A') {
+      setPointA(newPoint);
+    } else {
+      setPointB(newPoint);
+    }
+  }, [draggedPoint, fromSvgCoords]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedPoint(null);
+  }, []);
+
+  useEffect(() => {
+    if (draggedPoint) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('touchmove', handleDragMove, { passive: false });
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchend', handleDragEnd);
+
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('touchmove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchend', handleDragEnd);
+      };
+    }
+  }, [draggedPoint, handleDragMove, handleDragEnd]);
+  
+  const svgA = toSvgCoords(pointA);
+  const svgB = toSvgCoords(pointB);
+  const svgM = toSvgCoords(pointM);
+
+  const gridLines = Array.from({ length: GRID_RANGE * 2 + 1 }, (_, i) => {
+    const val = i - GRID_RANGE;
+    const isOrigin = val === 0;
+    const commonProps = {
+      className: isOrigin ? "stroke-gray-400 dark:stroke-gray-500" : "stroke-gray-200 dark:stroke-gray-700",
+      strokeWidth: isOrigin ? "1" : "0.5"
+    };
+    return (
+        <React.Fragment key={i}>
+            <line x1={toSvgCoords({x: val, y: 0}).x} y1={PADDING} x2={toSvgCoords({x: val, y: 0}).x} y2={VIEWBOX_SIZE - PADDING} {...commonProps} />
+            <line x1={PADDING} y1={toSvgCoords({x: 0, y: val}).y} x2={VIEWBOX_SIZE - PADDING} y2={toSvgCoords({x: 0, y: val}).y} {...commonProps} />
+        </React.Fragment>
+    );
+  });
+
   return (
     <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg max-w-4xl mx-auto">
       <h2 className="text-4xl font-bold text-center mb-4 text-gray-900 dark:text-white">אמצע של קטע</h2>
@@ -23,18 +119,18 @@ export default function LearnSection(): React.ReactElement {
       <div className="mb-12">
         <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">הנוסחה</h3>
         <p className="text-gray-700 dark:text-gray-300 mb-6">
-          כאשר נתון קטע AB שקצותיו הן הנקודות <span>A(x₁, y₁)</span> ו-<span>B(x₂, y₂)</span>,
+          כאשר נתון קטע AB שקצותיו הן הנקודות <span>A({pointA.x}, {pointA.y})</span> ו-<span>B({pointB.x}, {pointB.y})</span>,
           ונקודה M היא אמצע הקטע AB, אז מתקיים:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormulaBox 
                 title="שיעור ה-X של נקודת האמצע"
-                formula="Xm = (x₁ + x₂) / 2"
+                formula={`Xm = (${pointA.x} + ${pointB.x}) / 2 = ${pointM.x.toLocaleString()}`}
                 explanation="שיעור ה-X של נקודת האמצע הוא הממוצע של שיעורי ה-X של נקודות הקצה."
             />
             <FormulaBox 
                 title="שיעור ה-Y של נקודת האמצע"
-                formula="Ym = (y₁ + y₂) / 2"
+                formula={`Ym = (${pointA.y} + ${pointB.y}) / 2 = ${pointM.y.toLocaleString()}`}
                 explanation="שיעור ה-Y של נקודת האמצע הוא הממוצע של שיעורי ה-Y של נקודות הקצה."
             />
         </div>
@@ -48,32 +144,40 @@ export default function LearnSection(): React.ReactElement {
       </div>
 
        <div className="mt-12">
-            <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">דוגמה ויזואלית</h3>
-            <div className="flex justify-center p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                 <svg viewBox="0 0 200 150" className="w-full max-w-md">
+            <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">דוגמה ויזואלית אינטראקטיבית</h3>
+            <p className="text-center text-gray-600 dark:text-gray-400 mb-4">הזיזו את הנקודות A ו-B כדי לראות איך נקודת האמצע M משתנה.</p>
+            <div className={`flex justify-center p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg ${draggedPoint ? 'cursor-grabbing' : 'cursor-grab'}`}>
+                 <svg ref={svgRef} viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`} className="w-full max-w-md touch-none">
                     {/* Grid lines */}
-                    <path d="M 10 10 H 190 M 10 75 H 190 M 10 140 H 190" stroke="#e2e8f0" strokeWidth="0.5" />
-                    <path d="M 10 10 V 140 M 100 10 V 140 M 190 10 V 140" stroke="#e2e8f0" strokeWidth="0.5" />
-                    {/* Axes */}
-                    <path d="M 10 75 H 190" stroke="currentColor" strokeWidth="1" />
-                    <path d="M 100 10 V 140" stroke="currentColor" strokeWidth="1" />
-                    <text x="195" y="78" fill="currentColor" fontSize="8">x</text>
-                    <text x="97" y="8" fill="currentColor" fontSize="8">y</text>
+                    {gridLines}
+                    <line x1={PADDING} y1={toSvgCoords({x:0,y:0}).y} x2={VIEWBOX_SIZE-PADDING} y2={toSvgCoords({x:0,y:0}).y} className="stroke-gray-400 dark:stroke-gray-500" strokeWidth="1.5" />
+                    <line x1={toSvgCoords({x:0,y:0}).x} y1={PADDING} x2={toSvgCoords({x:0,y:0}).x} y2={VIEWBOX_SIZE-PADDING} className="stroke-gray-400 dark:stroke-gray-500" strokeWidth="1.5" />
+                    <text x={VIEWBOX_SIZE - PADDING + 2} y={toSvgCoords({x:0,y:0}).y + 4} fill="currentColor" fontSize="8">x</text>
+                    <text x={toSvgCoords({x:0,y:0}).x - 6} y={PADDING - 2} fill="currentColor" fontSize="8">y</text>
                     
                     {/* Line AB */}
-                    <line x1="30" y1="120" x2="170" y2="30" stroke="#4f46e5" strokeWidth="2" />
+                    <line x1={svgA.x} y1={svgA.y} x2={svgB.x} y2={svgB.y} className="stroke-indigo-500" strokeWidth="2" strokeDasharray="4" />
                     
+                    {/* Point M */}
+                    <g className="pointer-events-none">
+                      <circle cx={svgM.x} cy={svgM.y} r="5" className="fill-red-500" />
+                      <circle cx={svgM.x} cy={svgM.y} r="2" className="fill-white" />
+                      <text x={svgM.x + 8} y={svgM.y + 4} fill="currentColor" fontSize="8" fontWeight="bold" className="select-none">M({pointM.x.toLocaleString()}, {pointM.y.toLocaleString()})</text>
+                    </g>
+
                     {/* Point A */}
-                    <circle cx="30" cy="120" r="3" fill="#34d399" />
-                    <text x="20" y="135" fill="currentColor" fontSize="10">A(x₁, y₁)</text>
+                    <g onMouseDown={handleDragStart('A')} onTouchStart={handleDragStart('A')} className="cursor-pointer">
+                        <circle cx={svgA.x} cy={svgA.y} r="12" className="fill-transparent" />
+                        <circle cx={svgA.x} cy={svgA.y} r="5" className="fill-green-500" />
+                        <text x={svgA.x + 8} y={svgA.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">A({pointA.x}, {pointA.y})</text>
+                    </g>
                     
                     {/* Point B */}
-                    <circle cx="170" cy="30" r="3" fill="#fb923c" />
-                    <text x="165" y="25" fill="currentColor" fontSize="10">B(x₂, y₂)</text>
-
-                    {/* Point M */}
-                    <circle cx="100" cy="75" r="4" fill="#f43f5e" />
-                    <text x="105" y="85" fill="currentColor" fontSize="10" fontWeight="bold">M(Xm, Ym)</text>
+                    <g onMouseDown={handleDragStart('B')} onTouchStart={handleDragStart('B')} className="cursor-pointer">
+                        <circle cx={svgB.x} cy={svgB.y} r="12" className="fill-transparent" />
+                        <circle cx={svgB.x} cy={svgB.y} r="5" className="fill-orange-500" />
+                        <text x={svgB.x + 8} y={svgB.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">B({pointB.x}, {pointB.y})</text>
+                    </g>
                 </svg>
             </div>
         </div>
