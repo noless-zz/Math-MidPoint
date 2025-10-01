@@ -1,15 +1,30 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
-const FormulaBox: React.FC<{ title: string; formula: string; explanation: string }> = ({ title, formula, explanation }) => (
+const Fraction: React.FC<{ numerator: React.ReactNode; denominator: React.ReactNode }> = ({ numerator, denominator }) => (
+    <div className="inline-flex flex-col items-center align-middle">
+        <span className="px-2">{numerator}</span>
+        <hr className="w-full border-t-2 border-gray-700 dark:border-gray-200 my-1" />
+        <span className="px-2">{denominator}</span>
+    </div>
+);
+
+const MathDisplay: React.FC<{ variable: string; children: React.ReactNode }> = ({ variable, children }) => (
+     <div className="flex items-center justify-center gap-2 text-xl md:text-2xl font-medium text-gray-800 dark:text-gray-100">
+        <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
+        {children}
+    </div>
+);
+
+const FormulaBox: React.FC<{ title: string; children: React.ReactNode; explanation: string }> = ({ title, children, explanation }) => (
     <div className="bg-indigo-50 dark:bg-indigo-900/50 border-r-4 border-indigo-500 p-6 rounded-lg">
         <h3 className="text-xl font-semibold text-indigo-800 dark:text-indigo-200">{title}</h3>
-        <div className="text-2xl font-mono my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center text-gray-800 dark:text-gray-100 shadow-inner break-words">
-            {formula}
+        <div className="my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center shadow-inner min-h-[80px] flex items-center justify-center">
+            {children}
         </div>
         <p className="text-indigo-700 dark:text-indigo-300">{explanation}</p>
     </div>
 );
+
 
 const VIEWBOX_SIZE = 200;
 const GRID_RANGE = 10;
@@ -135,19 +150,31 @@ export default function LearnSection(): React.ReactElement {
       <div className="mb-12">
         <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">הנוסחה הכללית</h3>
         <p className="text-gray-700 dark:text-gray-300 mb-6">
-            כאשר נתון קטע AB שקצותיו הן הנקודות <span>A(x₁, y₁)</span> ו-<span>B(x₂, y₂)</span>, ונקודה M היא אמצע הקטע AB, אז מתקיים:
+            כאשר נתון קטע AB שקצותיו הן הנקודות <span>A(x<sub>1</sub>, y<sub>1</sub>)</span> ו-<span>B(x<sub>2</sub>, y<sub>2</sub>)</span>, ונקודה M היא אמצע הקטע AB, אז מתקיים:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormulaBox 
                 title="שיעור ה-X של נקודת האמצע"
-                formula={'Xm = (x₁ + x₂) / 2'}
                 explanation="שיעור ה-X של נקודת האמצע הוא הממוצע של שיעורי ה-X של נקודות הקצה."
-            />
+            >
+                <MathDisplay variable="Xm">
+                    <Fraction 
+                        numerator={<><span>x<sub>1</sub></span> + <span>x<sub>2</sub></span></>}
+                        denominator={<span>2</span>}
+                    />
+                </MathDisplay>
+            </FormulaBox>
             <FormulaBox 
                 title="שיעור ה-Y של נקודת האמצע"
-                formula={'Ym = (y₁ + y₂) / 2'}
                 explanation="שיעור ה-Y של נקודת האמצע הוא הממוצע של שיעורי ה-Y של נקודות הקצה."
-            />
+            >
+                <MathDisplay variable="Ym">
+                    <Fraction 
+                        numerator={<><span>y<sub>1</sub></span> + <span>y<sub>2</sub></span></>}
+                        denominator={<span>2</span>}
+                    />
+                </MathDisplay>
+            </FormulaBox>
         </div>
       </div>
 
@@ -198,18 +225,29 @@ export default function LearnSection(): React.ReactElement {
             </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg text-center">
-                    <p className="text-lg font-mono text-gray-800 dark:text-gray-100 break-words">
-                        {`Xm = (${pointA.x} + ${pointB.x}) / 2 = ${pointM.x.toLocaleString()}`}
-                    </p>
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg flex items-center justify-center">
+                    <MathDisplay variable="Xm">
+                        <div className="flex items-center gap-2">
+                            <Fraction 
+                                numerator={<><span>{pointA.x}</span> + <span>{pointB.x}</span></>}
+                                denominator={<span>2</span>}
+                            />
+                            <span>= {pointM.x.toLocaleString()}</span>
+                        </div>
+                    </MathDisplay>
                 </div>
-                <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg text-center">
-                    <p className="text-lg font-mono text-gray-800 dark:text-gray-100 break-words">
-                        {`Ym = (${pointA.y} + ${pointB.y}) / 2 = ${pointM.y.toLocaleString()}`}
-                    </p>
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg flex items-center justify-center">
+                    <MathDisplay variable="Ym">
+                        <div className="flex items-center gap-2">
+                            <Fraction 
+                                numerator={<><span>{pointA.y}</span> + <span>{pointB.y}</span></>}
+                                denominator={<span>2</span>}
+                            />
+                            <span>= {pointM.y.toLocaleString()}</span>
+                        </div>
+                    </MathDisplay>
                 </div>
             </div>
-
         </div>
     </div>
   );
