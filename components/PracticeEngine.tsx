@@ -193,10 +193,10 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                                 ${showFeedback && userAnswer === pointToString(opt) && userAnswer !== pointToString(question.answer) ? '!bg-red-500 !border-red-500 text-white' : ''}
                             `}
                         >
-                            <span>
-                                (<span className={coordColors.X.text}>{opt.x}</span>
+                            <span dir="ltr">
+                                (<span className={`${coordColors.X.text} font-bold`}>{opt.x}</span>
                                 , 
-                                <span className={coordColors.Y.text}>{opt.y}</span>)
+                                <span className={`${coordColors.Y.text} font-bold`}>{opt.y}</span>)
                             </span>
                         </button>
                     ))}
