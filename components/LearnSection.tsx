@@ -108,6 +108,22 @@ export default function LearnSection(): React.ReactElement {
         </React.Fragment>
     );
   });
+  
+  const axisNumbers = Array.from({ length: GRID_RANGE * 2 + 1 }, (_, i) => {
+    const val = i - GRID_RANGE;
+    if (val === 0 || val % 5 !== 0) return null;
+    
+    return (
+        <React.Fragment key={`num-${val}`}>
+            <text x={toSvgCoords({x: val, y: 0}).x} y={toSvgCoords({x:0,y:0}).y + 10} fill="currentColor" fontSize="6" textAnchor="middle" className="select-none pointer-events-none">
+                {val}
+            </text>
+            <text x={toSvgCoords({x:0,y:0}).x - 5} y={toSvgCoords({x: 0, y: val}).y + 2} fill="currentColor" fontSize="6" textAnchor="end" className="select-none pointer-events-none">
+                {val}
+            </text>
+        </React.Fragment>
+    )
+  });
 
   return (
     <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg max-w-4xl mx-auto">
@@ -117,20 +133,19 @@ export default function LearnSection(): React.ReactElement {
       </p>
 
       <div className="mb-12">
-        <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">הנוסחה</h3>
+        <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">הנוסחה הכללית</h3>
         <p className="text-gray-700 dark:text-gray-300 mb-6">
-          כאשר נתון קטע AB שקצותיו הן הנקודות <span>A({pointA.x}, {pointA.y})</span> ו-<span>B({pointB.x}, {pointB.y})</span>,
-          ונקודה M היא אמצע הקטע AB, אז מתקיים:
+            כאשר נתון קטע AB שקצותיו הן הנקודות <span>A(x₁, y₁)</span> ו-<span>B(x₂, y₂)</span>, ונקודה M היא אמצע הקטע AB, אז מתקיים:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormulaBox 
                 title="שיעור ה-X של נקודת האמצע"
-                formula={`Xm = (${pointA.x} + ${pointB.x}) / 2 = ${pointM.x.toLocaleString()}`}
+                formula={'Xm = (x₁ + x₂) / 2'}
                 explanation="שיעור ה-X של נקודת האמצע הוא הממוצע של שיעורי ה-X של נקודות הקצה."
             />
             <FormulaBox 
                 title="שיעור ה-Y של נקודת האמצע"
-                formula={`Ym = (${pointA.y} + ${pointB.y}) / 2 = ${pointM.y.toLocaleString()}`}
+                formula={'Ym = (y₁ + y₂) / 2'}
                 explanation="שיעור ה-Y של נקודת האמצע הוא הממוצע של שיעורי ה-Y של נקודות הקצה."
             />
         </div>
@@ -145,11 +160,12 @@ export default function LearnSection(): React.ReactElement {
 
        <div className="mt-12">
             <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">דוגמה ויזואלית אינטראקטיבית</h3>
-            <p className="text-center text-gray-600 dark:text-gray-400 mb-4">הזיזו את הנקודות A ו-B כדי לראות איך נקודת האמצע M משתנה.</p>
+            <p className="text-center text-gray-600 dark:text-gray-400 mb-4">הזיזו את הנקודות A ו-B כדי לראות איך נקודת האמצע M והחישוב משתנים.</p>
             <div className={`flex justify-center p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg ${draggedPoint ? 'cursor-grabbing' : 'cursor-grab'}`}>
                  <svg ref={svgRef} viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`} className="w-full max-w-md touch-none">
-                    {/* Grid lines */}
+                    {/* Grid lines and numbers */}
                     {gridLines}
+                    {axisNumbers}
                     <line x1={PADDING} y1={toSvgCoords({x:0,y:0}).y} x2={VIEWBOX_SIZE-PADDING} y2={toSvgCoords({x:0,y:0}).y} className="stroke-gray-400 dark:stroke-gray-500" strokeWidth="1.5" />
                     <line x1={toSvgCoords({x:0,y:0}).x} y1={PADDING} x2={toSvgCoords({x:0,y:0}).x} y2={VIEWBOX_SIZE-PADDING} className="stroke-gray-400 dark:stroke-gray-500" strokeWidth="1.5" />
                     <text x={VIEWBOX_SIZE - PADDING + 2} y={toSvgCoords({x:0,y:0}).y + 4} fill="currentColor" fontSize="8">x</text>
@@ -162,24 +178,38 @@ export default function LearnSection(): React.ReactElement {
                     <g className="pointer-events-none">
                       <circle cx={svgM.x} cy={svgM.y} r="5" className="fill-red-500" />
                       <circle cx={svgM.x} cy={svgM.y} r="2" className="fill-white" />
-                      <text x={svgM.x + 8} y={svgM.y + 4} fill="currentColor" fontSize="8" fontWeight="bold" className="select-none">M({pointM.x.toLocaleString()}, {pointM.y.toLocaleString()})</text>
+                      <text x={svgM.x + 8} y={svgM.y + 4} fill="currentColor" fontSize="8" fontWeight="bold" className="select-none">{`M(xm=${pointM.x.toLocaleString()}, ym=${pointM.y.toLocaleString()})`}</text>
                     </g>
 
                     {/* Point A */}
                     <g onMouseDown={handleDragStart('A')} onTouchStart={handleDragStart('A')} className="cursor-pointer">
                         <circle cx={svgA.x} cy={svgA.y} r="12" className="fill-transparent" />
                         <circle cx={svgA.x} cy={svgA.y} r="5" className="fill-green-500" />
-                        <text x={svgA.x + 8} y={svgA.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">A({pointA.x}, {pointA.y})</text>
+                        <text x={svgA.x + 8} y={svgA.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">{`A(xa=${pointA.x}, ya=${pointA.y})`}</text>
                     </g>
                     
                     {/* Point B */}
                     <g onMouseDown={handleDragStart('B')} onTouchStart={handleDragStart('B')} className="cursor-pointer">
                         <circle cx={svgB.x} cy={svgB.y} r="12" className="fill-transparent" />
                         <circle cx={svgB.x} cy={svgB.y} r="5" className="fill-orange-500" />
-                        <text x={svgB.x + 8} y={svgB.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">B({pointB.x}, {pointB.y})</text>
+                        <text x={svgB.x + 8} y={svgB.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">{`B(xb=${pointB.x}, yb=${pointB.y})`}</text>
                     </g>
                 </svg>
             </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg text-center">
+                    <p className="text-lg font-mono text-gray-800 dark:text-gray-100 break-words">
+                        {`Xm = (${pointA.x} + ${pointB.x}) / 2 = ${pointM.x.toLocaleString()}`}
+                    </p>
+                </div>
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg text-center">
+                    <p className="text-lg font-mono text-gray-800 dark:text-gray-100 break-words">
+                        {`Ym = (${pointA.y} + ${pointB.y}) / 2 = ${pointM.y.toLocaleString()}`}
+                    </p>
+                </div>
+            </div>
+
         </div>
     </div>
   );
