@@ -93,23 +93,36 @@ const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
     const { A, B, M } = points;
     
     return (
-        <div className="my-6 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg flex flex-col md:flex-row justify-around items-center gap-4">
-            {type === QT.FindMidpoint && B && (
-                <>
-                    <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
-                    <FractionFormula variable="Ym" num1={A.y} num2={B.y} color1={pointColors.A} color2={pointColors.B} />
-                </>
-            )}
-            {type === QT.FindEndpoint && M && (
-                 <>
-                    <MathFormula variable="Xb" parts={[
-                        "2", "×", { val: M.x, colorClass: pointColors.M }, "-", { val: A.x, colorClass: pointColors.A }
-                    ]} />
-                    <MathFormula variable="Yb" parts={[
-                        "2", "×", { val: M.y, colorClass: pointColors.M }, "-", { val: A.y, colorClass: pointColors.A }
-                    ]} />
-                </>
-            )}
+        <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 my-6">
+            {/* X Coordinate Formula */}
+            <div className={`p-4 rounded-lg border-2 w-full flex-1 flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
+                <h3 className={`font-bold text-lg mb-2 ${coordColors.X.text}`}>חישוב שיעור X</h3>
+                <div className="h-16 flex-grow flex items-center justify-center">
+                    {type === QT.FindMidpoint && B && (
+                        <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
+                    )}
+                    {type === QT.FindEndpoint && M && (
+                        <MathFormula variable="Xb" parts={[
+                            "2", "×", { val: M.x, colorClass: pointColors.M }, "-", { val: A.x, colorClass: pointColors.A }
+                        ]} />
+                    )}
+                </div>
+            </div>
+
+            {/* Y Coordinate Formula */}
+            <div className={`p-4 rounded-lg border-2 w-full flex-1 flex flex-col items-center ${coordColors.Y.border} ${coordColors.Y.bg}`}>
+                 <h3 className={`font-bold text-lg mb-2 ${coordColors.Y.text}`}>חישוב שיעור Y</h3>
+                <div className="h-16 flex-grow flex items-center justify-center">
+                    {type === QT.FindMidpoint && B && (
+                        <FractionFormula variable="Ym" num1={A.y} num2={B.y} color1={pointColors.A} color2={pointColors.B} />
+                    )}
+                    {type === QT.FindEndpoint && M && (
+                        <MathFormula variable="Yb" parts={[
+                            "2", "×", { val: M.y, colorClass: pointColors.M }, "-", { val: A.y, colorClass: pointColors.A }
+                        ]} />
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
