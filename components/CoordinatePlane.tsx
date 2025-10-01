@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import type { Point } from '../types';
 
@@ -15,17 +14,6 @@ const VIEWBOX_SIZE = 400;
 const GRID_RANGE = 10;
 const PADDING = 25;
 const CONTENT_SIZE = VIEWBOX_SIZE - 2 * PADDING;
-
-const PointLabel: React.FC<{ point: Point, name: string, color: string, svgCoords: {x: number, y: number} }> = ({ point, name, color, svgCoords }) => (
-    <text
-        x={svgCoords.x + 8}
-        y={svgCoords.y + 4}
-        className={`fill-current ${color} text-sm font-bold select-none pointer-events-none`}
-        style={{ fontSize: '10px' }}
-    >
-        {`${name}(x: ${point.x}, y: ${point.y})`}
-    </text>
-);
 
 // Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 export default function CoordinatePlane({
@@ -83,6 +71,99 @@ export default function CoordinatePlane({
         return numbers;
     }, []);
 
+    const labelPositions = useMemo(() => {
+        const allPointsToLabel = [];
+        const { A, B, M } = pointsToDraw;
+
+        allPointsToLabel.push({ id: 'A', point: A, name: 'A', color: 'text-blue-600 dark:text-blue-400' });
+        if (B) allPointsToLabel.push({ id: 'B', point: B, name: 'B', color: 'text-orange-600 dark:text-orange-400' });
+        if (M) allPointsToLabel.push({ id: 'M', point: M, name: 'M', color: 'text-pink-600 dark:text-pink-400' });
+
+        if (showCorrectAnswer) {
+            allPointsToLabel.push({
+                id: 'correct',
+                point: correctAnswer,
+                text: `נכון: (${correctAnswer.x},${correctAnswer.y})`,
+                color: 'fill-green-600 dark:fill-green-400',
+            });
+            if (answerPoint && (answerPoint.x !== correctAnswer.x || answerPoint.y !== correctAnswer.y)) {
+                allPointsToLabel.push({
+                    id: 'user_wrong',
+                    point: answerPoint,
+                    text: `התשובה שלך`,
+                    color: 'fill-red-600 dark:fill-red-400',
+                });
+            }
+        } else if (answerPoint) {
+            allPointsToLabel.push({
+                id: 'user_answer',
+                point: answerPoint,
+                text: `תשובה: (${answerPoint.x},${answerPoint.y})`,
+                color: 'fill-indigo-500',
+            });
+        }
+        
+        const positions = new Map();
+        const occupiedRects: { x: number, y: number, width: number, height: number }[] = [];
+        
+        const candidates = [
+            { anchor: 'start', dx: 8, dy: 14 }, // bottom-right
+            { anchor: 'end', dx: -8, dy: -4 },  // top-left
+            { anchor: 'start', dx: 8, dy: -4 }, // top-right
+            { anchor: 'end', dx: -8, dy: 14 },  // bottom-left
+        ];
+
+        allPointsToLabel.forEach(labelInfo => {
+            const svgCoords = toSvgCoords(labelInfo.point);
+            const labelText = labelInfo.text ?? `${labelInfo.name}(x: ${labelInfo.point.x}, y: ${labelInfo.point.y})`;
+            
+            let bestPos = null;
+
+            for (const cand of candidates) {
+                const labelWidth = labelText.length * 5.5; 
+                const labelHeight = 10;
+                const textX = svgCoords.x + cand.dx;
+                const textY = svgCoords.y + cand.dy;
+
+                const rect = {
+                    x: cand.anchor === 'start' ? textX : textX - labelWidth,
+                    y: textY - labelHeight,
+                    width: labelWidth,
+                    height: labelHeight
+                };
+                
+                if (rect.x < PADDING/2 || rect.x + rect.width > VIEWBOX_SIZE - PADDING/2 ||
+                    rect.y < PADDING/2 || rect.y + rect.height > VIEWBOX_SIZE - PADDING/2) {
+                    continue; 
+                }
+
+                let isOverlapping = false;
+                for (const region of occupiedRects) {
+                    if (rect.x < region.x + region.width && rect.x + rect.width > region.x &&
+                        rect.y < region.y + region.height && rect.y + rect.height > region.y) {
+                        isOverlapping = true;
+                        break;
+                    }
+                }
+
+                if (!isOverlapping) {
+                    bestPos = { x: textX, y: textY, textAnchor: cand.anchor };
+                    occupiedRects.push(rect);
+                    break;
+                }
+            }
+
+            if (!bestPos) {
+                const cand = candidates[0];
+                bestPos = { x: svgCoords.x + cand.dx, y: svgCoords.y + cand.dy, textAnchor: cand.anchor };
+            }
+            positions.set(labelInfo.id, { ...bestPos, text: labelText, color: labelInfo.color });
+        });
+
+        return Array.from(positions.entries());
+    }, [pointsToDraw, answerPoint, correctAnswer, showCorrectAnswer]);
+
+
     const getEventCoords = (e: React.MouseEvent<SVGSVGElement> | React.TouchEvent<SVGSVGElement>): {x: number, y: number} => {
         const svg = e.currentTarget;
         const pt = svg.createSVGPoint();
@@ -138,15 +219,12 @@ export default function CoordinatePlane({
                 
                 {/* Points */}
                 <circle cx={svgA.x} cy={svgA.y} r="5" className="fill-blue-500" />
-                <PointLabel point={A} name="A" color="text-blue-600 dark:text-blue-400" svgCoords={svgA} />
                 
                 {svgB && B && <>
                     <circle cx={svgB.x} cy={svgB.y} r="5" className="fill-orange-500" />
-                    <PointLabel point={B} name="B" color="text-orange-600 dark:text-orange-400" svgCoords={svgB} />
                 </>}
                  {svgM && M && <>
                     <circle cx={svgM.x} cy={svgM.y} r="5" className="fill-pink-500" />
-                    <PointLabel point={M} name="M" color="text-pink-600 dark:text-pink-400" svgCoords={svgM} />
                 </>}
 
                 {/* Hover point */}
@@ -154,15 +232,12 @@ export default function CoordinatePlane({
                     <circle cx={svgHover.x} cy={svgHover.y} r="5" className="fill-indigo-500/30" />
                 )}
 
-                {/* User's Answer */}
+                {/* User's Answer before feedback */}
                 {svgAnswer && !showCorrectAnswer && (
-                     <g>
-                        <circle cx={svgAnswer.x} cy={svgAnswer.y} r="6" className="fill-indigo-500 opacity-80" />
-                        <text x={svgAnswer.x + 10} y={svgAnswer.y + 6} className="fill-indigo-500 text-sm font-bold" style={{ fontSize: '10px' }}>תשובה: ({answerPoint!.x},{answerPoint!.y})</text>
-                    </g>
+                    <circle cx={svgAnswer.x} cy={svgAnswer.y} r="6" className="fill-indigo-500 opacity-80" />
                 )}
                 
-                {/* Feedback */}
+                {/* Feedback points */}
                 {showCorrectAnswer && answerPoint && (answerPoint.x !== correctAnswer.x || answerPoint.y !== correctAnswer.y) && svgAnswer &&(
                     <g>
                        <circle cx={svgAnswer.x} cy={svgAnswer.y} r="6" className="fill-red-500 opacity-80" />
@@ -174,9 +249,23 @@ export default function CoordinatePlane({
                     <g>
                         <circle cx={svgCorrectAnswer.x} cy={svgCorrectAnswer.y} r="7" className="fill-green-500" />
                         <circle cx={svgCorrectAnswer.x} cy={svgCorrectAnswer.y} r="4" className="fill-white" />
-                        <text x={svgCorrectAnswer.x + 10} y={svgCorrectAnswer.y + 6} className="fill-green-600 dark:fill-green-400 font-bold" style={{ fontSize: '10px' }}>נכון: ({correctAnswer.x},{correctAnswer.y})</text>
                     </g>
                 )}
+                
+                {/* Smart Labels */}
+                {labelPositions.map(([id, props]) => (
+                    <text
+                        key={id}
+                        x={props.x}
+                        y={props.y}
+                        textAnchor={props.textAnchor as 'start' | 'end' | 'middle'}
+                        className={`${props.color} text-sm font-bold select-none pointer-events-none`}
+                        style={{ fontSize: '10px' }}
+                    >
+                        {props.text}
+                    </text>
+                ))}
+
 
             </svg>
         </div>
