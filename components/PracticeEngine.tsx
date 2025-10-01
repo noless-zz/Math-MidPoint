@@ -11,6 +11,8 @@ interface PracticeEngineProps {
 
 type AnswerState = 'initial' | 'correct' | 'incorrect';
 
+// --- Helper Functions and Components ---
+
 function pointToString(p: Point): string {
     return `(${p.x}, ${p.y})`;
 }
@@ -21,31 +23,84 @@ function stringToPoint(s: string): Point | null {
     return { x: parseFloat(match[1]), y: parseFloat(match[2]) };
 }
 
+const pointColors = {
+    A: 'text-blue-600 dark:text-blue-400',
+    B: 'text-orange-500 dark:text-orange-400',
+    M: 'text-pink-500 dark:text-pink-400',
+};
+
+const PointSpan: React.FC<{ name: string, point: Point }> = ({ name, point }) => (
+    <span className={`${pointColors[name as keyof typeof pointColors]} font-bold`}>
+        {name}{pointToString(point)}
+    </span>
+);
+
+const QuestionTextView: React.FC<{ question: Question }> = ({ question }) => {
+    const { A, B, M } = question.points;
+    if (question.type === QT.FindMidpoint) {
+      return <span>נתונות הנקודות <PointSpan name="A" point={A} /> ו-<PointSpan name="B" point={B!} />. מהי נקודת האמצע M של הקטע AB?</span>;
+    } else {
+      return <span>נתונה הנקודה <PointSpan name="A" point={A} /> ונקודת האמצע <PointSpan name="M" point={M!} /> של קטע. מצא את נקודת הקצה השנייה B.</span>;
+    }
+};
+
+const MathFormula: React.FC<{ variable: string, parts: (string | { val: number | string, colorClass: string })[] }> = ({ variable, parts }) => (
+    <div className="flex items-center justify-center gap-2 text-xl font-medium text-gray-800 dark:text-gray-100">
+        <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
+        <div className="flex items-center gap-1.5">
+            {parts.map((part, index) => {
+                if (typeof part === 'string') {
+                    return <span key={index}>{part}</span>;
+                }
+                return <span key={index} className={`${part.colorClass} font-bold`}>{part.val}</span>;
+            })}
+        </div>
+    </div>
+);
+
+const FractionFormula: React.FC<{ variable: string, num1: number, num2: number, color1: string, color2: string }> = ({ variable, num1, num2, color1, color2 }) => (
+    <div className="flex items-center justify-center gap-2 text-xl font-medium text-gray-800 dark:text-gray-100">
+        <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
+        <div className="inline-flex flex-col items-center">
+            <span className="flex items-center gap-1.5 px-2">
+                <span className={`${color1} font-bold`}>{num1}</span>
+                <span>+</span>
+                <span className={`${color2} font-bold`}>{num2}</span>
+            </span>
+            <hr className="w-full border-t-2 border-gray-700 dark:border-gray-200" />
+            <span className="pt-0.5">2</span>
+        </div>
+    </div>
+);
+
 const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
     const { type, points } = question;
     const { A, B, M } = points;
     
-    let xFormula = '';
-    let yFormula = '';
-
-    if (type === QT.FindMidpoint && B) {
-        xFormula = `Xm = (${A.x} + ${B.x}) / 2`;
-        yFormula = `Ym = (${A.y} + ${B.y}) / 2`;
-    } else if (type === QT.FindEndpoint && M) {
-        xFormula = `Xb = 2 * ${M.x} - ${A.x}`;
-        yFormula = `Yb = 2 * ${M.y} - ${A.y}`;
-    }
-
     return (
-        <div className="my-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg space-y-2">
-            <p className="text-lg font-mono text-center text-gray-800 dark:text-gray-100 break-words">{xFormula}</p>
-            <p className="text-lg font-mono text-center text-gray-800 dark:text-gray-100 break-words">{yFormula}</p>
+        <div className="my-6 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg flex flex-col md:flex-row justify-around items-center gap-4">
+            {type === QT.FindMidpoint && B && (
+                <>
+                    <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
+                    <FractionFormula variable="Ym" num1={A.y} num2={B.y} color1={pointColors.A} color2={pointColors.B} />
+                </>
+            )}
+            {type === QT.FindEndpoint && M && (
+                 <>
+                    <MathFormula variable="Xb" parts={[
+                        "2", "×", { val: M.x, colorClass: pointColors.M }, "-", { val: A.x, colorClass: pointColors.A }
+                    ]} />
+                    <MathFormula variable="Yb" parts={[
+                        "2", "×", { val: M.y, colorClass: pointColors.M }, "-", { val: A.y, colorClass: pointColors.A }
+                    ]} />
+                </>
+            )}
         </div>
-    )
-}
+    );
+};
 
+// --- Main Component ---
 
-// Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 export default function PracticeEngine({ updateUser }: PracticeEngineProps): React.ReactElement {
   const [question, setQuestion] = useState<Question | null>(null);
   const [userAnswer, setUserAnswer] = useState<string>(''); // For MC and Graphical
@@ -72,8 +127,8 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
 
     let isCorrect = false;
     if (question.answerFormat === AF.TextInput) {
-        const x = parseInt(userAnswerX, 10);
-        const y = parseInt(userAnswerY, 10);
+        const x = parseFloat(userAnswerX);
+        const y = parseFloat(userAnswerY);
         isCorrect = !isNaN(x) && !isNaN(y) && x === question.answer.x && y === question.answer.y;
     } else if (question.answerFormat === AF.Graphical) {
         const parsedAnswer = stringToPoint(userAnswer);
@@ -85,16 +140,6 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
     setAnswerState(isCorrect ? 'correct' : 'incorrect');
     setShowFeedback(true);
     updateUser(isCorrect ? 10 : 0, 1);
-  };
-
-  const getQuestionText = (): string => {
-    if (!question) return '';
-    const { A, B, M } = question.points;
-    if (question.type === QT.FindMidpoint) {
-      return `נתונות הנקודות A${pointToString(A)} ו-B${pointToString(B!)}. מהי נקודת האמצע M של הקטע AB?`;
-    } else {
-      return `נתונה הנקודה A${pointToString(A)} ונקודת האמצע M${pointToString(M!)} של קטע. מצא את נקודת הקצה השנייה B.`;
-    }
   };
   
   const renderAnswerInput = () => {
@@ -168,7 +213,9 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
 
   return (
     <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
-      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2 text-center">{getQuestionText()}</h2>
+      <h2 className="text-2xl font-medium text-gray-800 dark:text-gray-100 mb-2 text-center leading-relaxed">
+        <QuestionTextView question={question} />
+      </h2>
       
       {(question.answerFormat === AF.MultipleChoice || question.answerFormat === AF.TextInput) && <FormulaDisplay question={question} />}
       
