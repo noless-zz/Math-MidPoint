@@ -1,0 +1,81 @@
+
+import { Question, Point, QuestionType, AnswerFormat } from '../types';
+import { QuestionType as QT, AnswerFormat as AF } from '../types';
+
+const getRandomInt = (min: number, max: number): number => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+const getRandomPoint = (): Point => {
+  return {
+    x: getRandomInt(-10, 10),
+    y: getRandomInt(-10, 10),
+  };
+};
+
+const shuffleArray = <T,>(array: T[]): T[] => {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+};
+
+export function generateQuestion(): Question {
+  const questionType: QuestionType = Math.random() < 0.7 ? QT.FindMidpoint : QT.FindEndpoint;
+  const answerFormat: AnswerFormat = [AF.MultipleChoice, AF.Graphical, AF.TextInput][getRandomInt(0,2)];
+
+  let A: Point, B: Point, M: Point;
+  let question: Question;
+
+  if (questionType === QT.FindMidpoint) {
+    // To ensure midpoint has integer coordinates, make sum of endpoints even
+    A = getRandomPoint();
+    B = {
+        x: getRandomInt(-10, 10) * 2 - A.x,
+        y: getRandomInt(-10, 10) * 2 - A.y
+    }
+    M = {
+      x: (A.x + B.x) / 2,
+      y: (A.y + B.y) / 2,
+    };
+    
+    question = {
+        type: QT.FindMidpoint,
+        points: { A, B },
+        answer: M,
+        answerFormat,
+    };
+
+  } else { // FindEndpoint
+    A = getRandomPoint();
+    M = getRandomPoint();
+    B = {
+      x: 2 * M.x - A.x,
+      y: 2 * M.y - A.y,
+    };
+    question = {
+        type: QT.FindEndpoint,
+        points: { A, M },
+        answer: B,
+        answerFormat,
+    }
+  }
+
+  if (answerFormat === AF.MultipleChoice) {
+    const options: Point[] = [question.answer];
+    while (options.length < 4) {
+      const wrongAnswer: Point = {
+        x: question.answer.x + getRandomInt(-3, 3),
+        y: question.answer.y + getRandomInt(-3, 3),
+      };
+      // Avoid duplicates and the correct answer
+      if (!options.some(opt => opt.x === wrongAnswer.x && opt.y === wrongAnswer.y)) {
+        options.push(wrongAnswer);
+      }
+    }
+    question.options = shuffleArray(options);
+  }
+
+  return question;
+}

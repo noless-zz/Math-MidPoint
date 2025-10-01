@@ -1,0 +1,5 @@
+{
+  "name": "Midpoint Master",
+  "description": "An interactive web application for 10th-grade students to learn and practice finding the midpoint of a line segment. The app includes a learning center, dynamic exercise generation with multiple answer formats, progress tracking, and a leaderboard.",
+  "requestFramePermissions": []
+}
