@@ -2,16 +2,22 @@
 import { Question, Point, QuestionType, AnswerFormat } from '../types';
 import { QuestionType as QT, AnswerFormat as AF } from '../types';
 
+const GRID_RANGE = 10;
+
 const getRandomInt = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
 const getRandomPoint = (): Point => {
   return {
-    x: getRandomInt(-10, 10),
-    y: getRandomInt(-10, 10),
+    x: getRandomInt(-GRID_RANGE, GRID_RANGE),
+    y: getRandomInt(-GRID_RANGE, GRID_RANGE),
   };
 };
+
+const isPointInRange = (p: Point): boolean => 
+    Math.abs(p.x) <= GRID_RANGE && Math.abs(p.y) <= GRID_RANGE;
+
 
 const shuffleArray = <T,>(array: T[]): T[] => {
   for (let i = array.length - 1; i > 0; i--) {
@@ -29,12 +35,19 @@ export function generateQuestion(): Question {
   let question: Question;
 
   if (questionType === QT.FindMidpoint) {
-    // To ensure midpoint has integer coordinates, make sum of endpoints even
-    A = getRandomPoint();
-    B = {
-        x: getRandomInt(-10, 10) * 2 - A.x,
-        y: getRandomInt(-10, 10) * 2 - A.y
+    let isValid = false;
+    A = {x:0, y:0}; // Initial dummy value
+    B = {x:0, y:0}; // Initial dummy value
+
+    while(!isValid) {
+        A = getRandomPoint();
+        B = getRandomPoint();
+        // Ensure midpoint has integer coordinates
+        if ((A.x + B.x) % 2 === 0 && (A.y + B.y) % 2 === 0) {
+            isValid = true;
+        }
     }
+    
     M = {
       x: (A.x + B.x) / 2,
       y: (A.y + B.y) / 2,
@@ -48,12 +61,23 @@ export function generateQuestion(): Question {
     };
 
   } else { // FindEndpoint
-    A = getRandomPoint();
-    M = getRandomPoint();
-    B = {
-      x: 2 * M.x - A.x,
-      y: 2 * M.y - A.y,
-    };
+    let isValid = false;
+    A = {x:0, y:0}; // Initial dummy value
+    B = {x:0, y:0}; // Initial dummy value
+    M = {x:0, y:0}; // Initial dummy value
+
+    while(!isValid) {
+        A = getRandomPoint();
+        M = getRandomPoint();
+        B = {
+          x: 2 * M.x - A.x,
+          y: 2 * M.y - A.y,
+        };
+        if (isPointInRange(B)) {
+            isValid = true;
+        }
+    }
+    
     question = {
         type: QT.FindEndpoint,
         points: { A, M },
