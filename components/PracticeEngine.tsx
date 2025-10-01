@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateQuestion } from '../services/exerciseGenerator';
-import type { Question, Point, User, AnswerFormat, QuestionType } from '../types';
+import type { Question, Point, User } from '../types';
 import { AnswerFormat as AF, QuestionType as QT } from '../types';
-import MathInput from './MathInput';
 import CoordinatePlane from './CoordinatePlane';
 
 interface PracticeEngineProps {
@@ -18,21 +16,49 @@ function pointToString(p: Point): string {
 }
 
 function stringToPoint(s: string): Point | null {
-    const match = s.match(/^\s*\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)\s*$/);
+    const match = s.match(/^\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)\s*$/);
     if (!match) return null;
-    return { x: parseInt(match[1]), y: parseInt(match[2]) };
+    return { x: parseFloat(match[1]), y: parseFloat(match[2]) };
 }
+
+const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
+    const { type, points } = question;
+    const { A, B, M } = points;
+    
+    let xFormula = '';
+    let yFormula = '';
+
+    if (type === QT.FindMidpoint && B) {
+        xFormula = `Xm = (${A.x} + ${B.x}) / 2`;
+        yFormula = `Ym = (${A.y} + ${B.y}) / 2`;
+    } else if (type === QT.FindEndpoint && M) {
+        xFormula = `Xb = 2 * ${M.x} - ${A.x}`;
+        yFormula = `Yb = 2 * ${M.y} - ${A.y}`;
+    }
+
+    return (
+        <div className="my-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg space-y-2">
+            <p className="text-lg font-mono text-center text-gray-800 dark:text-gray-100 break-words">{xFormula}</p>
+            <p className="text-lg font-mono text-center text-gray-800 dark:text-gray-100 break-words">{yFormula}</p>
+        </div>
+    )
+}
+
 
 // Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 export default function PracticeEngine({ updateUser }: PracticeEngineProps): React.ReactElement {
   const [question, setQuestion] = useState<Question | null>(null);
-  const [userAnswer, setUserAnswer] = useState<string>('');
+  const [userAnswer, setUserAnswer] = useState<string>(''); // For MC and Graphical
+  const [userAnswerX, setUserAnswerX] = useState(''); // For Text Input X
+  const [userAnswerY, setUserAnswerY] = useState(''); // For Text Input Y
   const [answerState, setAnswerState] = useState<AnswerState>('initial');
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
 
   const loadNewQuestion = useCallback(() => {
     setQuestion(generateQuestion());
     setUserAnswer('');
+    setUserAnswerX('');
+    setUserAnswerY('');
     setAnswerState('initial');
     setShowFeedback(false);
   }, []);
@@ -45,7 +71,11 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
     if (!question) return;
 
     let isCorrect = false;
-    if (question.answerFormat === AF.Graphical || question.answerFormat === AF.TextInput) {
+    if (question.answerFormat === AF.TextInput) {
+        const x = parseInt(userAnswerX, 10);
+        const y = parseInt(userAnswerY, 10);
+        isCorrect = !isNaN(x) && !isNaN(y) && x === question.answer.x && y === question.answer.y;
+    } else if (question.answerFormat === AF.Graphical) {
         const parsedAnswer = stringToPoint(userAnswer);
         isCorrect = parsedAnswer !== null && parsedAnswer.x === question.answer.x && parsedAnswer.y === question.answer.y;
     } else { // Multiple Choice
@@ -88,7 +118,34 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                 </div>
             );
         case AF.TextInput:
-            return <MathInput value={userAnswer} onChange={setUserAnswer} disabled={showFeedback} />;
+            return (
+                 <div className="flex justify-center items-center gap-8 mt-6" dir="ltr">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="x-input" className="font-bold text-xl text-gray-700 dark:text-gray-300">X =</label>
+                        <input
+                            id="x-input"
+                            type="number"
+                            value={userAnswerX}
+                            onChange={(e) => setUserAnswerX(e.target.value)}
+                            disabled={showFeedback}
+                            className="w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition"
+                            aria-label="Coordinate X"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="y-input" className="font-bold text-xl text-gray-700 dark:text-gray-300">Y =</label>
+                        <input
+                            id="y-input"
+                            type="number"
+                            value={userAnswerY}
+                            onChange={(e) => setUserAnswerY(e.target.value)}
+                            disabled={showFeedback}
+                            className="w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition"
+                            aria-label="Coordinate Y"
+                        />
+                    </div>
+                </div>
+            );
         case AF.Graphical:
             return <CoordinatePlane 
                 pointsToDraw={question.points}
@@ -104,16 +161,22 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
   if (!question) {
     return <div className="text-center p-10">טוען שאלה...</div>;
   }
+  
+  const isSubmitDisabled = question.answerFormat === AF.TextInput 
+    ? userAnswerX.trim() === '' || userAnswerY.trim() === '' 
+    : !userAnswer;
 
   return (
     <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
-      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6 text-center">{getQuestionText()}</h2>
+      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2 text-center">{getQuestionText()}</h2>
+      
+      {(question.answerFormat === AF.MultipleChoice || question.answerFormat === AF.TextInput) && <FormulaDisplay question={question} />}
       
       <div>{renderAnswerInput()}</div>
 
       <div className="mt-8 text-center">
         {!showFeedback ? (
-          <button onClick={handleAnswerSubmit} disabled={!userAnswer} className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold py-3 px-12 rounded-lg text-lg transition-all transform hover:scale-105">
+          <button onClick={handleAnswerSubmit} disabled={isSubmitDisabled} className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-bold py-3 px-12 rounded-lg text-lg transition-all transform hover:scale-105">
             בדיקה
           </button>
         ) : (
