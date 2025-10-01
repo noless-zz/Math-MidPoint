@@ -123,6 +123,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
   const [userAnswerY, setUserAnswerY] = useState(''); // For Text Input Y
   const [answerState, setAnswerState] = useState<AnswerState>('initial');
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
+  const [submittedAnswerPoint, setSubmittedAnswerPoint] = useState<Point | null>(null);
 
   const loadNewQuestion = useCallback(() => {
     setQuestion(generateQuestion());
@@ -131,6 +132,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
     setUserAnswerY('');
     setAnswerState('initial');
     setShowFeedback(false);
+    setSubmittedAnswerPoint(null);
   }, []);
 
   useEffect(() => {
@@ -141,17 +143,21 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
     if (!question) return;
 
     let isCorrect = false;
+    let finalAnswerPoint: Point | null = null;
+
     if (question.answerFormat === AF.TextInput) {
         const x = parseFloat(userAnswerX);
         const y = parseFloat(userAnswerY);
-        isCorrect = !isNaN(x) && !isNaN(y) && x === question.answer.x && y === question.answer.y;
-    } else if (question.answerFormat === AF.Graphical) {
-        const parsedAnswer = stringToPoint(userAnswer);
-        isCorrect = parsedAnswer !== null && parsedAnswer.x === question.answer.x && parsedAnswer.y === question.answer.y;
-    } else { // Multiple Choice
-        isCorrect = userAnswer === pointToString(question.answer);
+        if (!isNaN(x) && !isNaN(y)) {
+            finalAnswerPoint = { x, y };
+            isCorrect = x === question.answer.x && y === question.answer.y;
+        }
+    } else { // Multiple Choice or Graphical
+        finalAnswerPoint = stringToPoint(userAnswer);
+        isCorrect = finalAnswerPoint !== null && finalAnswerPoint.x === question.answer.x && finalAnswerPoint.y === question.answer.y;
     }
-
+    
+    setSubmittedAnswerPoint(finalAnswerPoint);
     setAnswerState(isCorrect ? 'correct' : 'incorrect');
     setShowFeedback(true);
     updateUser(isCorrect ? 10 : 0, 1);
@@ -240,7 +246,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                 pointsToDraw={question.points}
                 onPointSelect={(p) => setUserAnswer(pointToString(p))}
                 interactive={!showFeedback}
-                answerPoint={stringToPoint(userAnswer)}
+                answerPoint={showFeedback ? submittedAnswerPoint : stringToPoint(userAnswer)}
                 correctAnswer={question.answer}
                 showCorrectAnswer={showFeedback}
             />;
@@ -275,6 +281,20 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
              <div className={`p-4 rounded-lg w-full text-white font-bold text-lg ${answerState === 'correct' ? 'bg-green-500' : 'bg-red-500'}`}>
                 {answerState === 'correct' ? 'כל הכבוד! תשובה נכונה!' : `טעות. התשובה הנכונה היא ${pointToString(question.answer)}`}
             </div>
+            
+            {question.answerFormat !== AF.Graphical && (
+                <div className="w-full mt-4">
+                    <CoordinatePlane
+                        pointsToDraw={question.points}
+                        interactive={false}
+                        onPointSelect={() => {}}
+                        answerPoint={submittedAnswerPoint}
+                        correctAnswer={question.answer}
+                        showCorrectAnswer={true}
+                    />
+                </div>
+            )}
+
             <button onClick={loadNewQuestion} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-12 rounded-lg text-lg transition-transform transform hover:scale-105">
               שאלה הבאה
             </button>
