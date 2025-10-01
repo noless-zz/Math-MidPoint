@@ -29,6 +29,21 @@ const pointColors = {
     M: 'text-pink-500 dark:text-pink-400',
 };
 
+const coordColors = {
+    X: {
+        text: 'text-teal-600 dark:text-teal-400',
+        border: 'border-teal-500',
+        focus: 'focus:border-teal-500 focus:ring-teal-500',
+        bg: 'bg-teal-50 dark:bg-teal-900/50',
+    },
+    Y: {
+        text: 'text-purple-600 dark:text-purple-400',
+        border: 'border-purple-500',
+        focus: 'focus:border-purple-500 focus:ring-purple-500',
+        bg: 'bg-purple-50 dark:bg-purple-900/50',
+    }
+};
+
 const PointSpan: React.FC<{ name: string, point: Point }> = ({ name, point }) => (
     <span className={`${pointColors[name as keyof typeof pointColors]} font-bold`}>
         {name}{pointToString(point)}
@@ -163,31 +178,60 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                 </div>
             );
         case AF.TextInput:
+            const { type, points } = question;
+            const { A, B, M } = points;
             return (
-                 <div className="flex justify-center items-center gap-8 mt-6" dir="ltr">
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="x-input" className="font-bold text-xl text-gray-700 dark:text-gray-300">X =</label>
-                        <input
-                            id="x-input"
-                            type="number"
-                            value={userAnswerX}
-                            onChange={(e) => setUserAnswerX(e.target.value)}
-                            disabled={showFeedback}
-                            className="w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition"
-                            aria-label="Coordinate X"
-                        />
+                 <div className="flex flex-col md:flex-row justify-center items-start gap-8 mt-6">
+                    {/* X Coordinate Input */}
+                    <div className={`p-4 rounded-lg border-2 w-full md:w-auto ${coordColors.X.border} ${coordColors.X.bg}`}>
+                        <div className="h-16 flex items-center justify-center">
+                            {type === QT.FindMidpoint && B && (
+                                <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
+                            )}
+                            {type === QT.FindEndpoint && M && (
+                                <MathFormula variable="Xb" parts={[
+                                    "2", "×", { val: M.x, colorClass: pointColors.M }, "-", { val: A.x, colorClass: pointColors.A }
+                                ]} />
+                            )}
+                        </div>
+                        <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
+                            <label htmlFor="x-input" className={`font-bold text-xl ${coordColors.X.text}`}>X =</label>
+                            <input
+                                id="x-input"
+                                type="number"
+                                value={userAnswerX}
+                                onChange={(e) => setUserAnswerX(e.target.value)}
+                                disabled={showFeedback}
+                                className={`w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 transition ${coordColors.X.focus}`}
+                                aria-label="Coordinate X"
+                            />
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="y-input" className="font-bold text-xl text-gray-700 dark:text-gray-300">Y =</label>
-                        <input
-                            id="y-input"
-                            type="number"
-                            value={userAnswerY}
-                            onChange={(e) => setUserAnswerY(e.target.value)}
-                            disabled={showFeedback}
-                            className="w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 transition"
-                            aria-label="Coordinate Y"
-                        />
+
+                    {/* Y Coordinate Input */}
+                    <div className={`p-4 rounded-lg border-2 w-full md:w-auto ${coordColors.Y.border} ${coordColors.Y.bg}`}>
+                        <div className="h-16 flex items-center justify-center">
+                            {type === QT.FindMidpoint && B && (
+                                <FractionFormula variable="Ym" num1={A.y} num2={B.y} color1={pointColors.A} color2={pointColors.B} />
+                            )}
+                            {type === QT.FindEndpoint && M && (
+                                <MathFormula variable="Yb" parts={[
+                                    "2", "×", { val: M.y, colorClass: pointColors.M }, "-", { val: A.y, colorClass: pointColors.A }
+                                ]} />
+                            )}
+                        </div>
+                        <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
+                            <label htmlFor="y-input" className={`font-bold text-xl ${coordColors.Y.text}`}>Y =</label>
+                            <input
+                                id="y-input"
+                                type="number"
+                                value={userAnswerY}
+                                onChange={(e) => setUserAnswerY(e.target.value)}
+                                disabled={showFeedback}
+                                className={`w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 transition ${coordColors.Y.focus}`}
+                                aria-label="Coordinate Y"
+                            />
+                        </div>
                     </div>
                 </div>
             );
@@ -217,7 +261,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
         <QuestionTextView question={question} />
       </h2>
       
-      {(question.answerFormat === AF.MultipleChoice || question.answerFormat === AF.TextInput) && <FormulaDisplay question={question} />}
+      {question.answerFormat === AF.MultipleChoice && <FormulaDisplay question={question} />}
       
       <div>{renderAnswerInput()}</div>
 
