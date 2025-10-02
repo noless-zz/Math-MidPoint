@@ -96,20 +96,7 @@ const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
     
     return (
         <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 my-6">
-             {/* X Coordinate Formula */}
-             <div className={`p-4 rounded-lg border-2 w-full flex-1 flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
-                <h3 className={`font-bold text-lg mb-2 ${coordColors.X.text}`}>חישוב שיעור X</h3>
-                <div className="h-16 flex-grow flex items-center justify-center">
-                    {type === QT.FindMidpoint && B && (
-                        <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
-                    )}
-                    {type === QT.FindEndpoint && M && (
-                         <EndpointFormula variable="Xb" numM={M.x} numA={A.x} colorM={pointColors.M} colorA={pointColors.A} />
-                    )}
-                </div>
-            </div>
-
-            {/* Y Coordinate Formula */}
+             {/* Y Coordinate Formula */}
             <div className={`p-4 rounded-lg border-2 w-full flex-1 flex flex-col items-center ${coordColors.Y.border} ${coordColors.Y.bg}`}>
                  <h3 className={`font-bold text-lg mb-2 ${coordColors.Y.text}`}>חישוב שיעור Y</h3>
                 <div className="h-16 flex-grow flex items-center justify-center">
@@ -118,6 +105,18 @@ const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
                     )}
                     {type === QT.FindEndpoint && M && (
                         <EndpointFormula variable="Yb" numM={M.y} numA={A.y} colorM={pointColors.M} colorA={pointColors.A} />
+                    )}
+                </div>
+            </div>
+            {/* X Coordinate Formula */}
+             <div className={`p-4 rounded-lg border-2 w-full flex-1 flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
+                <h3 className={`font-bold text-lg mb-2 ${coordColors.X.text}`}>חישוב שיעור X</h3>
+                <div className="h-16 flex-grow flex items-center justify-center">
+                    {type === QT.FindMidpoint && B && (
+                        <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
+                    )}
+                    {type === QT.FindEndpoint && M && (
+                         <EndpointFormula variable="Xb" numM={M.x} numA={A.x} colorM={pointColors.M} colorA={pointColors.A} />
                     )}
                 </div>
             </div>
@@ -202,32 +201,21 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                     ))}
                 </div>
             );
-        case AF.TextInput:
+        case AF.TextInput: {
+            const { type, points } = question;
+            const { A, B, M } = points;
              return (
                  <div className="flex flex-col md:flex-row justify-center items-start gap-8 mt-6">
-                    {/* X Coordinate Input */}
-                    <div className={`p-4 rounded-lg border-2 w-full md:w-auto flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
-                        <div className="h-16 flex items-center justify-center">
-                           <FormulaDisplay question={{...question, type: question.type}} />
-                        </div>
-                        <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
-                            <label htmlFor="x-input" className={`font-bold text-xl ${coordColors.X.text}`}>X =</label>
-                            <input
-                                id="x-input"
-                                type="number"
-                                value={userAnswerX}
-                                onChange={(e) => setUserAnswerX(e.target.value)}
-                                disabled={showFeedback}
-                                className={`w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 transition ${coordColors.X.focus}`}
-                                aria-label="Coordinate X"
-                            />
-                        </div>
-                    </div>
-
                     {/* Y Coordinate Input */}
                     <div className={`p-4 rounded-lg border-2 w-full md:w-auto flex flex-col items-center ${coordColors.Y.border} ${coordColors.Y.bg}`}>
+                        <h3 className={`font-bold text-lg mb-2 ${coordColors.Y.text}`}>חישוב שיעור Y</h3>
                         <div className="h-16 flex items-center justify-center">
-                            <FormulaDisplay question={{...question, type: question.type}} />
+                            {type === QT.FindMidpoint && B && (
+                                <FractionFormula variable="Ym" num1={A.y} num2={B.y} color1={pointColors.A} color2={pointColors.B} />
+                            )}
+                            {type === QT.FindEndpoint && M && (
+                                <EndpointFormula variable="Yb" numM={M.y} numA={A.y} colorM={pointColors.M} colorA={pointColors.A} />
+                            )}
                         </div>
                         <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
                             <label htmlFor="y-input" className={`font-bold text-xl ${coordColors.Y.text}`}>Y =</label>
@@ -242,8 +230,34 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                             />
                         </div>
                     </div>
+
+                    {/* X Coordinate Input */}
+                    <div className={`p-4 rounded-lg border-2 w-full md:w-auto flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
+                        <h3 className={`font-bold text-lg mb-2 ${coordColors.X.text}`}>חישוב שיעור X</h3>
+                        <div className="h-16 flex items-center justify-center">
+                            {type === QT.FindMidpoint && B && (
+                                <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
+                            )}
+                            {type === QT.FindEndpoint && M && (
+                                 <EndpointFormula variable="Xb" numM={M.x} numA={A.x} colorM={pointColors.M} colorA={pointColors.A} />
+                            )}
+                        </div>
+                        <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
+                            <label htmlFor="x-input" className={`font-bold text-xl ${coordColors.X.text}`}>X =</label>
+                            <input
+                                id="x-input"
+                                type="number"
+                                value={userAnswerX}
+                                onChange={(e) => setUserAnswerX(e.target.value)}
+                                disabled={showFeedback}
+                                className={`w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 transition ${coordColors.X.focus}`}
+                                aria-label="Coordinate X"
+                            />
+                        </div>
+                    </div>
                 </div>
             );
+        }
         case AF.Graphical:
             return <CoordinatePlane 
                 pointsToDraw={question.points}
@@ -270,7 +284,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
         <QuestionTextView question={question} />
       </h2>
       
-      {question.answerFormat !== AF.Graphical && <FormulaDisplay question={question} />}
+      {question.answerFormat === AF.MultipleChoice && <FormulaDisplay question={question} />}
       
       <div>{renderAnswerInput()}</div>
 
