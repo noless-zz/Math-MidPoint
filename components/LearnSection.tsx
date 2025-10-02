@@ -140,6 +140,14 @@ export default function LearnSection(): React.ReactElement {
     )
   });
 
+  const exampleA = { x: -1, y: 3 };
+  const exampleM = { x: 2, y: 5 };
+  const exampleB = { x: 5, y: 7 };
+  const svgExA = toSvgCoords(exampleA);
+  const svgExM = toSvgCoords(exampleM);
+  const svgExB = toSvgCoords(exampleB);
+
+
   return (
     <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg max-w-4xl mx-auto">
       <h2 className="text-4xl font-bold text-center mb-4 text-gray-900 dark:text-white">אמצע של קטע</h2>
@@ -297,6 +305,34 @@ export default function LearnSection(): React.ReactElement {
                 <p className="mt-4 font-semibold text-lg">
                     לכן, שיעורי הנקודה B הם <span dir="ltr" className="font-mono font-bold text-indigo-500">(5, 7)</span>.
                 </p>
+            </div>
+             <div className="mt-8">
+                <h5 className="text-xl font-semibold mb-3 text-center text-gray-800 dark:text-gray-100">הדגמה גרפית</h5>
+                <div className="flex justify-center p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <svg viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`} className="w-full max-w-sm">
+                        {gridLines}
+                        {axisNumbers}
+                        <line x1={PADDING} y1={toSvgCoords({x:0,y:0}).y} x2={VIEWBOX_SIZE-PADDING} y2={toSvgCoords({x:0,y:0}).y} className="stroke-gray-400 dark:stroke-gray-500" strokeWidth="1.5" />
+                        <line x1={toSvgCoords({x:0,y:0}).x} y1={PADDING} x2={toSvgCoords({x:0,y:0}).x} y2={VIEWBOX_SIZE-PADDING} className="stroke-gray-400 dark:stroke-gray-500" strokeWidth="1.5" />
+                        <text x={VIEWBOX_SIZE - PADDING + 2} y={toSvgCoords({x:0,y:0}).y + 4} fill="currentColor" fontSize="8">x</text>
+                        <text x={toSvgCoords({x:0,y:0}).x - 6} y={PADDING - 2} fill="currentColor" fontSize="8">y</text>
+                        
+                        <line x1={svgExA.x} y1={svgExA.y} x2={svgExB.x} y2={svgExB.y} className="stroke-indigo-500" strokeWidth="2" strokeDasharray="4" />
+                        
+                        <g>
+                            <circle cx={svgExA.x} cy={svgExA.y} r="5" className="fill-blue-500" />
+                            <text x={svgExA.x + 8} y={svgExA.y - 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">{`A(-1, 3)`}</text>
+                        </g>
+                        <g>
+                            <circle cx={svgExM.x} cy={svgExM.y} r="5" className="fill-pink-500" />
+                            <text x={svgExM.x + 8} y={svgExM.y + 4} fill="currentColor" fontSize="8" fontWeight="bold" className="select-none pointer-events-none">{`M(2, 5)`}</text>
+                        </g>
+                        <g>
+                            <circle cx={svgExB.x} cy={svgExB.y} r="5" className="fill-orange-500" />
+                            <text x={svgExB.x + 8} y={svgExB.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">{`B(5, 7) = ?`}</text>
+                        </g>
+                    </svg>
+                </div>
             </div>
         </div>
       </div>
