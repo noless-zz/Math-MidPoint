@@ -13,15 +13,9 @@ type AnswerState = 'initial' | 'correct' | 'incorrect';
 
 // --- Helper Functions and Components ---
 
-function pointToString(p: Point): string {
-    return `(${p.x}, ${p.y})`;
-}
-
-function stringToPoint(s: string): Point | null {
-    const match = s.match(/^\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)\s*$/);
-    if (!match) return null;
-    return { x: parseFloat(match[1]), y: parseFloat(match[2]) };
-}
+const FormattedPoint: React.FC<{ point: Point }> = ({ point }) => (
+    <span dir="ltr" className="font-mono">({point.x}, {point.y})</span>
+);
 
 const pointColors = {
     A: 'text-blue-600 dark:text-blue-400',
@@ -46,7 +40,7 @@ const coordColors = {
 
 const PointSpan: React.FC<{ name: string, point: Point }> = ({ name, point }) => (
     <span className={`${pointColors[name as keyof typeof pointColors]} font-bold`}>
-        {name}{pointToString(point)}
+        {name}<FormattedPoint point={point} />
     </span>
 );
 
@@ -59,34 +53,42 @@ const QuestionTextView: React.FC<{ question: Question }> = ({ question }) => {
     }
 };
 
-const MathFormula: React.FC<{ variable: string, parts: (string | { val: number | string, colorClass: string })[] }> = ({ variable, parts }) => (
-    <div className="flex items-center justify-center gap-2 text-xl font-medium text-gray-800 dark:text-gray-100">
-        <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
-        <div className="flex items-center gap-1.5">
-            {parts.map((part, index) => {
-                if (typeof part === 'string') {
-                    return <span key={index}>{part}</span>;
-                }
-                return <span key={index} className={`${part.colorClass} font-bold`}>{part.val}</span>;
-            })}
+const EndpointFormula: React.FC<{ variable: string, numM: number, numA: number, colorM: string, colorA: string }> = ({ variable, numM, numA, colorM, colorA }) => {
+    const operator = numA < 0 ? '+' : '-';
+    const displayNumA = Math.abs(numA);
+    return (
+        <div dir="ltr" className="flex items-center justify-center gap-2 text-xl font-medium text-gray-800 dark:text-gray-100">
+            <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
+            <div className="flex items-center gap-1.5">
+                <span>(2</span>
+                <span className="mx-1">×</span>
+                <span className={`${colorM} font-bold`}>{numM}</span>
+                <span>)</span>
+                <span className="mx-1">{operator}</span>
+                <span className={`${colorA} font-bold`}>{displayNumA}</span>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
-const FractionFormula: React.FC<{ variable: string, num1: number, num2: number, color1: string, color2: string }> = ({ variable, num1, num2, color1, color2 }) => (
-    <div className="flex items-center justify-center gap-2 text-xl font-medium text-gray-800 dark:text-gray-100">
-        <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
-        <div className="inline-flex flex-col items-center">
-            <span className="flex items-center gap-1.5 px-2">
-                <span className={`${color1} font-bold`}>{num1}</span>
-                <span>+</span>
-                <span className={`${color2} font-bold`}>{num2}</span>
-            </span>
-            <hr className="w-full border-t-2 border-gray-700 dark:border-gray-200" />
-            <span className="pt-0.5">2</span>
+const FractionFormula: React.FC<{ variable: string, num1: number, num2: number, color1: string, color2: string }> = ({ variable, num1, num2, color1, color2 }) => {
+    const operator = num2 < 0 ? '-' : '+';
+    const displayNum2 = Math.abs(num2);
+    return (
+        <div dir="ltr" className="flex items-center justify-center gap-2 text-xl font-medium text-gray-800 dark:text-gray-100">
+            <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
+            <div className="inline-flex flex-col items-center">
+                <span className="flex items-center gap-1.5 px-2">
+                    <span className={`${color1} font-bold`}>{num1}</span>
+                    <span>{operator}</span>
+                    <span className={`${color2} font-bold`}>{displayNum2}</span>
+                </span>
+                <hr className="w-full border-t-2 border-gray-700 dark:border-gray-200" />
+                <span className="pt-0.5">2</span>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
     const { type, points } = question;
@@ -94,7 +96,20 @@ const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
     
     return (
         <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 my-6">
-            {/* Y Coordinate Formula - DOM order swapped for correct RTL layout */}
+             {/* X Coordinate Formula */}
+             <div className={`p-4 rounded-lg border-2 w-full flex-1 flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
+                <h3 className={`font-bold text-lg mb-2 ${coordColors.X.text}`}>חישוב שיעור X</h3>
+                <div className="h-16 flex-grow flex items-center justify-center">
+                    {type === QT.FindMidpoint && B && (
+                        <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
+                    )}
+                    {type === QT.FindEndpoint && M && (
+                         <EndpointFormula variable="Xb" numM={M.x} numA={A.x} colorM={pointColors.M} colorA={pointColors.A} />
+                    )}
+                </div>
+            </div>
+
+            {/* Y Coordinate Formula */}
             <div className={`p-4 rounded-lg border-2 w-full flex-1 flex flex-col items-center ${coordColors.Y.border} ${coordColors.Y.bg}`}>
                  <h3 className={`font-bold text-lg mb-2 ${coordColors.Y.text}`}>חישוב שיעור Y</h3>
                 <div className="h-16 flex-grow flex items-center justify-center">
@@ -102,24 +117,7 @@ const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
                         <FractionFormula variable="Ym" num1={A.y} num2={B.y} color1={pointColors.A} color2={pointColors.B} />
                     )}
                     {type === QT.FindEndpoint && M && (
-                        <MathFormula variable="Yb" parts={[
-                            "2", "×", { val: M.y, colorClass: pointColors.M }, "-", { val: A.y, colorClass: pointColors.A }
-                        ]} />
-                    )}
-                </div>
-            </div>
-            
-            {/* X Coordinate Formula - DOM order swapped for correct RTL layout */}
-            <div className={`p-4 rounded-lg border-2 w-full flex-1 flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
-                <h3 className={`font-bold text-lg mb-2 ${coordColors.X.text}`}>חישוב שיעור X</h3>
-                <div className="h-16 flex-grow flex items-center justify-center">
-                    {type === QT.FindMidpoint && B && (
-                        <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
-                    )}
-                    {type === QT.FindEndpoint && M && (
-                        <MathFormula variable="Xb" parts={[
-                            "2", "×", { val: M.x, colorClass: pointColors.M }, "-", { val: A.x, colorClass: pointColors.A }
-                        ]} />
+                        <EndpointFormula variable="Yb" numM={M.y} numA={A.y} colorM={pointColors.M} colorA={pointColors.A} />
                     )}
                 </div>
             </div>
@@ -131,21 +129,19 @@ const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
 
 export default function PracticeEngine({ updateUser }: PracticeEngineProps): React.ReactElement {
   const [question, setQuestion] = useState<Question | null>(null);
-  const [userAnswer, setUserAnswer] = useState<string>(''); // For MC and Graphical
+  const [userAnswerPoint, setUserAnswerPoint] = useState<Point | null>(null); // For all formats
   const [userAnswerX, setUserAnswerX] = useState(''); // For Text Input X
   const [userAnswerY, setUserAnswerY] = useState(''); // For Text Input Y
   const [answerState, setAnswerState] = useState<AnswerState>('initial');
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
-  const [submittedAnswerPoint, setSubmittedAnswerPoint] = useState<Point | null>(null);
-
+  
   const loadNewQuestion = useCallback(() => {
     setQuestion(generateQuestion());
-    setUserAnswer('');
+    setUserAnswerPoint(null);
     setUserAnswerX('');
     setUserAnswerY('');
     setAnswerState('initial');
     setShowFeedback(false);
-    setSubmittedAnswerPoint(null);
   }, []);
 
   useEffect(() => {
@@ -155,22 +151,23 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
   const handleAnswerSubmit = () => {
     if (!question) return;
 
-    let isCorrect = false;
-    let finalAnswerPoint: Point | null = null;
-
+    let finalAnswerPoint = userAnswerPoint;
     if (question.answerFormat === AF.TextInput) {
         const x = parseFloat(userAnswerX);
         const y = parseFloat(userAnswerY);
         if (!isNaN(x) && !isNaN(y)) {
-            finalAnswerPoint = { x, y };
-            isCorrect = x === question.answer.x && y === question.answer.y;
+           finalAnswerPoint = { x, y };
+        } else {
+           finalAnswerPoint = null; // Invalid input
         }
-    } else { // Multiple Choice or Graphical
-        finalAnswerPoint = stringToPoint(userAnswer);
-        isCorrect = finalAnswerPoint !== null && finalAnswerPoint.x === question.answer.x && finalAnswerPoint.y === question.answer.y;
     }
     
-    setSubmittedAnswerPoint(finalAnswerPoint);
+    setUserAnswerPoint(finalAnswerPoint);
+
+    const isCorrect = finalAnswerPoint !== null && 
+                      finalAnswerPoint.x === question.answer.x && 
+                      finalAnswerPoint.y === question.answer.y;
+    
     setAnswerState(isCorrect ? 'correct' : 'incorrect');
     setShowFeedback(true);
     updateUser(isCorrect ? 10 : 0, 1);
@@ -178,6 +175,9 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
   
   const renderAnswerInput = () => {
     if (!question) return null;
+    const isCorrectAnswer = (opt: Point) => opt.x === question.answer.x && opt.y === question.answer.y;
+    const isSelectedAnswer = (opt: Point) => userAnswerPoint && opt.x === userAnswerPoint.x && opt.y === userAnswerPoint.y;
+
     switch(question.answerFormat) {
         case AF.MultipleChoice:
             return (
@@ -185,65 +185,30 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                     {question.options?.map((opt, i) => (
                         <button 
                             key={i} 
-                            onClick={() => setUserAnswer(pointToString(opt))}
+                            onClick={() => setUserAnswerPoint(opt)}
                             disabled={showFeedback}
-                            className={`p-4 rounded-lg text-xl font-mono transition-all duration-200 border-2
-                                ${userAnswer === pointToString(opt) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-indigo-500'}
-                                ${showFeedback && pointToString(opt) === pointToString(question.answer) ? '!bg-green-500 !border-green-500 text-white' : ''}
-                                ${showFeedback && userAnswer === pointToString(opt) && userAnswer !== pointToString(question.answer) ? '!bg-red-500 !border-red-500 text-white' : ''}
+                            className={`p-4 rounded-lg text-xl transition-all duration-200 border-2
+                                ${isSelectedAnswer(opt) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-indigo-500'}
+                                ${showFeedback && isCorrectAnswer(opt) ? '!bg-green-500 !border-green-500 text-white' : ''}
+                                ${showFeedback && isSelectedAnswer(opt) && !isCorrectAnswer(opt) ? '!bg-red-500 !border-red-500 text-white' : ''}
                             `}
                         >
-                            <span dir="ltr">
-                                (<span className={`${coordColors.X.text} font-bold`}>{opt.x}</span>
+                            <span className="inline-flex items-center gap-1" dir="ltr">
+                                (<b className={`${coordColors.X.text}`}>{opt.x}</b>
                                 , 
-                                <span className={`${coordColors.Y.text} font-bold`}>{opt.y}</span>)
+                                <b className={`${coordColors.Y.text}`}>{opt.y}</b>)
                             </span>
                         </button>
                     ))}
                 </div>
             );
         case AF.TextInput:
-            const { type, points } = question;
-            const { A, B, M } = points;
-            return (
+             return (
                  <div className="flex flex-col md:flex-row justify-center items-start gap-8 mt-6">
-                    {/* Y Coordinate Input - DOM order swapped for correct RTL layout */}
-                    <div className={`p-4 rounded-lg border-2 w-full md:w-auto ${coordColors.Y.border} ${coordColors.Y.bg}`}>
+                    {/* X Coordinate Input */}
+                    <div className={`p-4 rounded-lg border-2 w-full md:w-auto flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
                         <div className="h-16 flex items-center justify-center">
-                            {type === QT.FindMidpoint && B && (
-                                <FractionFormula variable="Ym" num1={A.y} num2={B.y} color1={pointColors.A} color2={pointColors.B} />
-                            )}
-                            {type === QT.FindEndpoint && M && (
-                                <MathFormula variable="Yb" parts={[
-                                    "2", "×", { val: M.y, colorClass: pointColors.M }, "-", { val: A.y, colorClass: pointColors.A }
-                                ]} />
-                            )}
-                        </div>
-                        <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
-                            <label htmlFor="y-input" className={`font-bold text-xl ${coordColors.Y.text}`}>Y =</label>
-                            <input
-                                id="y-input"
-                                type="number"
-                                value={userAnswerY}
-                                onChange={(e) => setUserAnswerY(e.target.value)}
-                                disabled={showFeedback}
-                                className={`w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 transition ${coordColors.Y.focus}`}
-                                aria-label="Coordinate Y"
-                            />
-                        </div>
-                    </div>
-                    
-                    {/* X Coordinate Input - DOM order swapped for correct RTL layout */}
-                    <div className={`p-4 rounded-lg border-2 w-full md:w-auto ${coordColors.X.border} ${coordColors.X.bg}`}>
-                        <div className="h-16 flex items-center justify-center">
-                            {type === QT.FindMidpoint && B && (
-                                <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
-                            )}
-                            {type === QT.FindEndpoint && M && (
-                                <MathFormula variable="Xb" parts={[
-                                    "2", "×", { val: M.x, colorClass: pointColors.M }, "-", { val: A.x, colorClass: pointColors.A }
-                                ]} />
-                            )}
+                           <FormulaDisplay question={{...question, type: question.type}} />
                         </div>
                         <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
                             <label htmlFor="x-input" className={`font-bold text-xl ${coordColors.X.text}`}>X =</label>
@@ -258,14 +223,33 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                             />
                         </div>
                     </div>
+
+                    {/* Y Coordinate Input */}
+                    <div className={`p-4 rounded-lg border-2 w-full md:w-auto flex flex-col items-center ${coordColors.Y.border} ${coordColors.Y.bg}`}>
+                        <div className="h-16 flex items-center justify-center">
+                            <FormulaDisplay question={{...question, type: question.type}} />
+                        </div>
+                        <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
+                            <label htmlFor="y-input" className={`font-bold text-xl ${coordColors.Y.text}`}>Y =</label>
+                            <input
+                                id="y-input"
+                                type="number"
+                                value={userAnswerY}
+                                onChange={(e) => setUserAnswerY(e.target.value)}
+                                disabled={showFeedback}
+                                className={`w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 transition ${coordColors.Y.focus}`}
+                                aria-label="Coordinate Y"
+                            />
+                        </div>
+                    </div>
                 </div>
             );
         case AF.Graphical:
             return <CoordinatePlane 
                 pointsToDraw={question.points}
-                onPointSelect={(p) => setUserAnswer(pointToString(p))}
+                onPointSelect={(p) => setUserAnswerPoint(p)}
                 interactive={!showFeedback}
-                answerPoint={showFeedback ? submittedAnswerPoint : stringToPoint(userAnswer)}
+                answerPoint={userAnswerPoint}
                 correctAnswer={question.answer}
                 showCorrectAnswer={showFeedback}
             />;
@@ -278,7 +262,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
   
   const isSubmitDisabled = question.answerFormat === AF.TextInput 
     ? userAnswerX.trim() === '' || userAnswerY.trim() === '' 
-    : !userAnswer;
+    : !userAnswerPoint;
 
   return (
     <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
@@ -286,7 +270,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
         <QuestionTextView question={question} />
       </h2>
       
-      {question.answerFormat === AF.MultipleChoice && <FormulaDisplay question={question} />}
+      {question.answerFormat !== AF.Graphical && <FormulaDisplay question={question} />}
       
       <div>{renderAnswerInput()}</div>
 
@@ -298,7 +282,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
         ) : (
           <div className="flex flex-col items-center gap-4">
              <div className={`p-4 rounded-lg w-full text-white font-bold text-lg ${answerState === 'correct' ? 'bg-green-500' : 'bg-red-500'}`}>
-                {answerState === 'correct' ? 'כל הכבוד! תשובה נכונה!' : `טעות. התשובה הנכונה היא ${pointToString(question.answer)}`}
+                {answerState === 'correct' ? 'כל הכבוד! תשובה נכונה!' : <>טעות. התשובה הנכונה היא <FormattedPoint point={question.answer} /></>}
             </div>
             
             {question.answerFormat !== AF.Graphical && (
@@ -307,7 +291,7 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
                         pointsToDraw={question.points}
                         interactive={false}
                         onPointSelect={() => {}}
-                        answerPoint={submittedAnswerPoint}
+                        answerPoint={userAnswerPoint}
                         correctAnswer={question.answer}
                         showCorrectAnswer={true}
                     />

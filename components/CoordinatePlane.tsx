@@ -75,22 +75,24 @@ export default function CoordinatePlane({
         const allPointsToLabel = [];
         const { A, B, M } = pointsToDraw;
 
-        allPointsToLabel.push({ id: 'A', point: A, name: 'A', color: 'text-blue-600 dark:text-blue-400' });
-        if (B) allPointsToLabel.push({ id: 'B', point: B, name: 'B', color: 'text-orange-600 dark:text-orange-400' });
-        if (M) allPointsToLabel.push({ id: 'M', point: M, name: 'M', color: 'text-pink-600 dark:text-pink-400' });
+        allPointsToLabel.push({ id: 'A', point: A, rtlText: 'A', ltrText: `(${A.x}, ${A.y})`, color: 'text-blue-600 dark:text-blue-400' });
+        if (B) allPointsToLabel.push({ id: 'B', point: B, rtlText: 'B', ltrText: `(${B.x}, ${B.y})`, color: 'text-orange-600 dark:text-orange-400' });
+        if (M) allPointsToLabel.push({ id: 'M', point: M, rtlText: 'M', ltrText: `(${M.x}, ${M.y})`, color: 'text-pink-600 dark:text-pink-400' });
 
         if (showCorrectAnswer) {
             allPointsToLabel.push({
                 id: 'correct',
                 point: correctAnswer,
-                text: `נכון: (${correctAnswer.x},${correctAnswer.y})`,
+                rtlText: `נכון: `,
+                ltrText: `(${correctAnswer.x},${correctAnswer.y})`,
                 color: 'fill-green-600 dark:fill-green-400',
             });
             if (answerPoint && (answerPoint.x !== correctAnswer.x || answerPoint.y !== correctAnswer.y)) {
                 allPointsToLabel.push({
                     id: 'user_wrong',
                     point: answerPoint,
-                    text: `התשובה שלך`,
+                    rtlText: `התשובה שלך`,
+                    ltrText: ``,
                     color: 'fill-red-600 dark:fill-red-400',
                 });
             }
@@ -98,7 +100,8 @@ export default function CoordinatePlane({
             allPointsToLabel.push({
                 id: 'user_answer',
                 point: answerPoint,
-                text: `תשובה: (${answerPoint.x},${answerPoint.y})`,
+                rtlText: `תשובה: `,
+                ltrText: `(${answerPoint.x},${answerPoint.y})`,
                 color: 'fill-indigo-500',
             });
         }
@@ -115,12 +118,12 @@ export default function CoordinatePlane({
 
         allPointsToLabel.forEach(labelInfo => {
             const svgCoords = toSvgCoords(labelInfo.point);
-            const labelText = labelInfo.text ?? `${labelInfo.name}(x: ${labelInfo.point.x}, y: ${labelInfo.point.y})`;
+            const fullLabelLength = (labelInfo.rtlText.length + labelInfo.ltrText.length);
             
             let bestPos = null;
 
             for (const cand of candidates) {
-                const labelWidth = labelText.length * 5.5; 
+                const labelWidth = fullLabelLength * 5.5; 
                 const labelHeight = 10;
                 const textX = svgCoords.x + cand.dx;
                 const textY = svgCoords.y + cand.dy;
@@ -157,7 +160,7 @@ export default function CoordinatePlane({
                 const cand = candidates[0];
                 bestPos = { x: svgCoords.x + cand.dx, y: svgCoords.y + cand.dy, textAnchor: cand.anchor };
             }
-            positions.set(labelInfo.id, { ...bestPos, text: labelText, color: labelInfo.color });
+            positions.set(labelInfo.id, { ...bestPos, rtlText: labelInfo.rtlText, ltrText: labelInfo.ltrText, color: labelInfo.color });
         });
 
         return Array.from(positions.entries());
@@ -262,7 +265,8 @@ export default function CoordinatePlane({
                         className={`${props.color} text-sm font-bold select-none pointer-events-none`}
                         style={{ fontSize: '10px' }}
                     >
-                        {props.text}
+                        {props.rtlText}
+                        <tspan className="font-mono" dx="2">{props.ltrText}</tspan>
                     </text>
                 ))}
 

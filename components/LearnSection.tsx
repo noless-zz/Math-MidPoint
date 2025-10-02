@@ -18,7 +18,7 @@ const MathDisplay: React.FC<{ variable: string; children: React.ReactNode }> = (
 const FormulaBox: React.FC<{ title: string; children: React.ReactNode; explanation: string }> = ({ title, children, explanation }) => (
     <div className="bg-indigo-50 dark:bg-indigo-900/50 border-r-4 border-indigo-500 p-6 rounded-lg">
         <h3 className="text-xl font-semibold text-indigo-800 dark:text-indigo-200">{title}</h3>
-        <div className="my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center shadow-inner min-h-[80px] flex items-center justify-center">
+        <div dir="ltr" className="my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center shadow-inner min-h-[80px] flex items-center justify-center">
             {children}
         </div>
         <p className="text-indigo-700 dark:text-indigo-300">{explanation}</p>
@@ -150,7 +150,7 @@ export default function LearnSection(): React.ReactElement {
       <div className="mb-12">
         <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">הנוסחה הכללית</h3>
         <p className="text-gray-700 dark:text-gray-300 mb-6">
-            כאשר נתון קטע AB שקצותיו הן הנקודות <span>A(x<sub>1</sub>, y<sub>1</sub>)</span> ו-<span>B(x<sub>2</sub>, y<sub>2</sub>)</span>, ונקודה M היא אמצע הקטע AB, אז מתקיים:
+            כאשר נתון קטע AB שקצותיו הן הנקודות <span dir="ltr">A(x<sub>1</sub>, y<sub>1</sub>)</span> ו-<span dir="ltr">B(x<sub>2</sub>, y<sub>2</sub>)</span>, ונקודה M היא אמצע הקטע AB, אז מתקיים:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormulaBox 
@@ -205,7 +205,7 @@ export default function LearnSection(): React.ReactElement {
                     <g className="pointer-events-none">
                       <circle cx={svgM.x} cy={svgM.y} r="5" className="fill-red-500" />
                       <circle cx={svgM.x} cy={svgM.y} r="2" className="fill-white" />
-                      <text x={svgM.x + 8} y={svgM.y + 4} fill="currentColor" fontSize="8" fontWeight="bold" className="select-none">{`M(xm=${pointM.x.toLocaleString()}, ym=${pointM.y.toLocaleString()})`}</text>
+                      <text x={svgM.x + 8} y={svgM.y + 4} fill="currentColor" fontSize="8" fontWeight="bold" className="select-none">{`M(xm=${pointM.x}, ym=${pointM.y})`}</text>
                     </g>
 
                     {/* Point A */}
@@ -224,7 +224,7 @@ export default function LearnSection(): React.ReactElement {
                 </svg>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div dir="ltr" className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg flex items-center justify-center">
                     <MathDisplay variable="Xm">
                         <div className="flex items-center gap-2">
@@ -232,7 +232,7 @@ export default function LearnSection(): React.ReactElement {
                                 numerator={<><span>{pointA.x}</span> + <span>{pointB.x}</span></>}
                                 denominator={<span>2</span>}
                             />
-                            <span>= {pointM.x.toLocaleString()}</span>
+                            <span>= {pointM.x}</span>
                         </div>
                     </MathDisplay>
                 </div>
@@ -243,7 +243,7 @@ export default function LearnSection(): React.ReactElement {
                                 numerator={<><span>{pointA.y}</span> + <span>{pointB.y}</span></>}
                                 denominator={<span>2</span>}
                             />
-                            <span>= {pointM.y.toLocaleString()}</span>
+                            <span>= {pointM.y}</span>
                         </div>
                     </MathDisplay>
                 </div>
