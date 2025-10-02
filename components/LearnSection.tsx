@@ -159,7 +159,7 @@ export default function LearnSection(): React.ReactElement {
             >
                 <MathDisplay variable="Xm">
                     <Fraction 
-                        numerator={<><span>x<sub>1</sub></span> + <span>x<sub>2</sub></span></>}
+                        numerator={<><span dir="ltr">x<sub>1</sub></span> + <span dir="ltr">x<sub>2</sub></span></>}
                         denominator={<span>2</span>}
                     />
                 </MathDisplay>
@@ -170,7 +170,7 @@ export default function LearnSection(): React.ReactElement {
             >
                 <MathDisplay variable="Ym">
                     <Fraction 
-                        numerator={<><span>y<sub>1</sub></span> + <span>y<sub>2</sub></span></>}
+                        numerator={<><span dir="ltr">y<sub>1</sub></span> + <span dir="ltr">y<sub>2</sub></span></>}
                         denominator={<span>2</span>}
                     />
                 </MathDisplay>
@@ -205,6 +205,7 @@ export default function LearnSection(): React.ReactElement {
                     <g className="pointer-events-none">
                       <circle cx={svgM.x} cy={svgM.y} r="5" className="fill-red-500" />
                       <circle cx={svgM.x} cy={svgM.y} r="2" className="fill-white" />
+                      {/* FIX: Removed invalid 'dir' prop from SVG <text> element. */}
                       <text x={svgM.x + 8} y={svgM.y + 4} fill="currentColor" fontSize="8" fontWeight="bold" className="select-none">{`M(xm=${pointM.x}, ym=${pointM.y})`}</text>
                     </g>
 
@@ -212,6 +213,7 @@ export default function LearnSection(): React.ReactElement {
                     <g onMouseDown={handleDragStart('A')} onTouchStart={handleDragStart('A')} className="cursor-pointer">
                         <circle cx={svgA.x} cy={svgA.y} r="12" className="fill-transparent" />
                         <circle cx={svgA.x} cy={svgA.y} r="5" className="fill-green-500" />
+                        {/* FIX: Removed invalid 'dir' prop from SVG <text> element. */}
                         <text x={svgA.x + 8} y={svgA.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">{`A(xa=${pointA.x}, ya=${pointA.y})`}</text>
                     </g>
                     
@@ -219,13 +221,14 @@ export default function LearnSection(): React.ReactElement {
                     <g onMouseDown={handleDragStart('B')} onTouchStart={handleDragStart('B')} className="cursor-pointer">
                         <circle cx={svgB.x} cy={svgB.y} r="12" className="fill-transparent" />
                         <circle cx={svgB.x} cy={svgB.y} r="5" className="fill-orange-500" />
+                        {/* FIX: Removed invalid 'dir' prop from SVG <text> element. */}
                         <text x={svgB.x + 8} y={svgB.y + 4} fill="currentColor" fontSize="8" className="select-none pointer-events-none">{`B(xb=${pointB.x}, yb=${pointB.y})`}</text>
                     </g>
                 </svg>
             </div>
 
-            <div dir="ltr" className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg flex items-center justify-center">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div dir="ltr" className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg flex items-center justify-center">
                     <MathDisplay variable="Xm">
                         <div className="flex items-center gap-2">
                             <Fraction 
@@ -236,7 +239,7 @@ export default function LearnSection(): React.ReactElement {
                         </div>
                     </MathDisplay>
                 </div>
-                <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg flex items-center justify-center">
+                <div dir="ltr" className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg flex items-center justify-center">
                     <MathDisplay variable="Ym">
                         <div className="flex items-center gap-2">
                             <Fraction 
@@ -249,6 +252,54 @@ export default function LearnSection(): React.ReactElement {
                 </div>
             </div>
         </div>
+
+      <div className="mt-16 pt-12 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">מקרה הפוך: מציאת נקודת קצה</h3>
+        <p className="text-gray-700 dark:text-gray-300 mb-6">
+          לפעמים, נתונה לנו נקודת האמצע M ונקודת קצה אחת (למשל A), ועלינו למצוא את נקודת הקצה השנייה (B). 
+          נוכל לעשות זאת על ידי סידור מחדש של הנוסחה המקורית:
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormulaBox 
+                title="שיעור ה-X של נקודת הקצה"
+                explanation="כדי למצוא את שיעור ה-X של נקודת הקצה, נכפיל את שיעור ה-X של האמצע ב-2 ונחסיר את שיעור ה-X של נקודת הקצה הנתונה."
+            >
+                <MathDisplay variable="Xb">
+                    <span>2 &times; X<sub>m</sub> - x<sub>a</sub></span>
+                </MathDisplay>
+            </FormulaBox>
+            <FormulaBox 
+                title="שיעור ה-Y של נקודת הקצה"
+                explanation="כדי למצוא את שיעור ה-Y של נקודת הקצה, נכפיל את שיעור ה-Y של האמצע ב-2 ונחסיר את שיעור ה-Y של נקודת הקצה הנתונה."
+            >
+                <MathDisplay variable="Yb">
+                    <span>2 &times; Y<sub>m</sub> - y<sub>a</sub></span>
+                </MathDisplay>
+            </FormulaBox>
+        </div>
+        
+        <div className="mt-8">
+            <h4 className="text-xl font-semibold mb-3 text-gray-800 dark:text-gray-100">דוגמה מספרית</h4>
+            <div className="bg-gray-100 dark:bg-gray-700/50 p-6 rounded-lg">
+                <p className="mb-4">
+                    נניח שנקודה <span dir="ltr" className="font-mono font-semibold">M(2, 5)</span> היא אמצע קטע AB, ונתונה נקודה <span dir="ltr" className="font-mono font-semibold">A(-1, 3)</span>. כדי למצוא את נקודה B:
+                </p>
+                <div className="space-y-4 bg-white dark:bg-gray-800 p-4 rounded-md shadow-inner">
+                    <div dir="ltr" className="flex items-center gap-3 text-lg">
+                        <span className="font-bold w-16">X<sub>b</sub> =</span>
+                        <span className="font-mono">(2 &times; 2) - (-1) = 4 + 1 = 5</span>
+                    </div>
+                    <div dir="ltr" className="flex items-center gap-3 text-lg">
+                        <span className="font-bold w-16">Y<sub>b</sub> =</span>
+                        <span className="font-mono">(2 &times; 5) - 3 = 10 - 3 = 7</span>
+                    </div>
+                </div>
+                <p className="mt-4 font-semibold text-lg">
+                    לכן, שיעורי הנקודה B הם <span dir="ltr" className="font-mono font-bold text-indigo-500">(5, 7)</span>.
+                </p>
+            </div>
+        </div>
+      </div>
     </div>
   );
 }
