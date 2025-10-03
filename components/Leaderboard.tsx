@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase/config';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import type { User } from '../types';
 import { CrownIcon } from './icons';
 
@@ -14,10 +15,9 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // FIX: Use v8 syntax for collection, query, and get.
-        const usersRef = db.collection('users');
-        const q = usersRef.orderBy('score', 'desc').limit(10);
-        const querySnapshot = await q.get();
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, orderBy('score', 'desc'), limit(10));
+        const querySnapshot = await getDocs(q);
         const fetchedUsers: User[] = [];
         querySnapshot.forEach((doc) => {
           fetchedUsers.push({ uid: doc.id, ...doc.data() } as User);
@@ -25,10 +25,10 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
 
         const currentUserInList = fetchedUsers.some(u => u.uid === currentUser.uid);
         if (!currentUserInList && currentUser) {
-            // FIX: Use v8 syntax for doc reference and get.
-            const userDocRef = db.collection("users").doc(currentUser.uid);
-            const userDocSnap = await userDocRef.get();
-            if(userDocSnap.exists) {
+            const userDocRef = doc(db, "users", currentUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            
+            if(userDocSnap.exists()) {
               fetchedUsers.push({ uid: currentUser.uid, ...userDocSnap.data() } as User);
             }
         }

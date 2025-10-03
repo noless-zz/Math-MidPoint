@@ -1,9 +1,9 @@
-// FIX: The errors indicate that Firebase v9 modular imports are failing.
-// This suggests an older version of Firebase (v8 or below) is likely being used.
-// The fix is to use the namespaced API from Firebase v8.
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/firestore';
+// Fix: Corrected firebase imports to use scoped packages to resolve module export errors.
+import { initializeApp, getApps, getApp } from '@firebase/app';
+// Fix: Corrected firebase imports to use scoped packages to resolve module export errors.
+import { getAuth } from '@firebase/auth';
+// Fix: Corrected firebase imports to use scoped packages to resolve module export errors.
+import { getFirestore } from '@firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA3UIywHgeGTrJAcuVKqZqpfBO_N5Vf4ws",
@@ -15,12 +15,9 @@ const firebaseConfig = {
   measurementId: "G-D1F9H37DJX"
 };
 
-// This robust check prevents re-initialization on hot reloads.
-// FIX: Use v8 syntax for app initialization.
-const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();
-
-// FIX: Use v8 syntax to get auth and firestore instances.
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 export { auth, db, app };
