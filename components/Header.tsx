@@ -51,7 +51,7 @@ export default function Header({ user, onNavigate, onLogout, currentView }: Head
 
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <div className="font-semibold text-gray-900 dark:text-white">{user.name}</div>
+              <div className="font-semibold text-gray-900 dark:text-white">{user.username}</div>
               <div className="text-sm text-indigo-500 font-bold">{user.score} נקודות</div>
             </div>
             <button onClick={onLogout} title="התנתק" className="p-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors">

@@ -40,7 +40,7 @@ export default function Dashboard({ user, onNavigate }: DashboardProps): React.R
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">שלום, {user.name}!</h2>
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">שלום, {user.username}!</h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 mt-1">מוכן להפוך לאשף בנקודות אמצע?</p>
       </div>
       

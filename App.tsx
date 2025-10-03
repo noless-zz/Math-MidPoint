@@ -1,35 +1,25 @@
 
-import React, { useState, useCallback } from 'react';
-// Fix: Removed `User` from this import as it's not exported from `useUser`. `User` type is not explicitly needed in this file anyway.
+import React from 'react';
 import { useUser } from './hooks/useUser';
 import { View } from './types';
-import LoginScreen from './components/LoginScreen';
+import AuthScreen from './components/AuthScreen'; // Changed from LoginScreen
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import LearnSection from './components/LearnSection';
 import PracticeEngine from './components/PracticeEngine';
 import Leaderboard from './components/Leaderboard';
 
-// Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 export default function App(): React.ReactElement {
-  const { user, login, logout, updateUser } = useUser();
-  const [view, setView] = useState<View>(View.Dashboard);
+  // useUser now returns loading state and auth functions
+  const { user, loading, signUp, login, logout, updateUser } = useUser();
+  const [view, setView] = React.useState<View>(View.Dashboard);
 
-  const handleLogin = (name: string): void => {
-    login(name);
-    setView(View.Dashboard);
-  };
-
-  const handleLogout = (): void => {
-    logout();
-  };
-
-  const handleNavigate = useCallback((newView: View) => {
+  const handleNavigate = React.useCallback((newView: View) => {
     setView(newView);
   }, []);
 
-  // Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
   const renderView = (): React.ReactElement => {
+    // User is guaranteed to be non-null here
     switch (view) {
       case View.Learn:
         return <LearnSection />;
@@ -42,14 +32,25 @@ export default function App(): React.ReactElement {
         return <Dashboard user={user!} onNavigate={handleNavigate} />;
     }
   };
-
-  if (!user) {
-    return <LoginScreen onLogin={handleLogin} />;
+  
+  // Handle initial loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <p className="text-xl font-semibold">טוען...</p>
+      </div>
+    );
   }
 
+  // If not loading and no user, show Auth screen
+  if (!user) {
+    return <AuthScreen onLogin={login} onSignUp={signUp} />;
+  }
+
+  // If logged in, show the main app
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 font-sans">
-      <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} currentView={view} />
+      <Header user={user} onNavigate={handleNavigate} onLogout={logout} currentView={view} />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {renderView()}
       </main>

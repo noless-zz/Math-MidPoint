@@ -5,7 +5,9 @@ export interface Point {
 }
 
 export interface User {
-  name: string;
+  uid: string;
+  email: string;
+  username: string;
   score: number;
   completedExercises: number;
 }

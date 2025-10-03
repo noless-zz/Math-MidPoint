@@ -1,5 +1,5 @@
-
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { db } from '../firebase/config';
 import type { User } from '../types';
 import { CrownIcon } from './icons';
 
@@ -7,25 +7,41 @@ interface LeaderboardProps {
   currentUser: User;
 }
 
-// Dummy data for a simulated leaderboard
-const dummyUsers: User[] = [
-  { name: 'איינשטיין', score: 1250, completedExercises: 125 },
-  { name: 'ניוטון', score: 1100, completedExercises: 110 },
-  { name: 'פיתגורס', score: 980, completedExercises: 98 },
-  { name: 'מרי קירי', score: 850, completedExercises: 82 },
-  { name: 'דה וינצ\'י', score: 720, completedExercises: 70 },
-  { name: 'גלילאו', score: 500, completedExercises: 45 },
-  { name: 'ארכימדס', score: 340, completedExercises: 33 },
-];
-
-// Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 export default function Leaderboard({ currentUser }: LeaderboardProps): React.ReactElement {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sortedUsers = useMemo(() => {
-    const combined = [...dummyUsers, currentUser];
-    // Avoid duplicates if user name is in dummy data
-    const uniqueUsers = Array.from(new Map(combined.map(u => [u.name, u])).values());
-    return uniqueUsers.sort((a, b) => b.score - a.score);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        // FIX: Use v8 syntax for collection, query, and get.
+        const usersRef = db.collection('users');
+        const q = usersRef.orderBy('score', 'desc').limit(10);
+        const querySnapshot = await q.get();
+        const fetchedUsers: User[] = [];
+        querySnapshot.forEach((doc) => {
+          fetchedUsers.push({ uid: doc.id, ...doc.data() } as User);
+        });
+
+        const currentUserInList = fetchedUsers.some(u => u.uid === currentUser.uid);
+        if (!currentUserInList && currentUser) {
+            // FIX: Use v8 syntax for doc reference and get.
+            const userDocRef = db.collection("users").doc(currentUser.uid);
+            const userDocSnap = await userDocRef.get();
+            if(userDocSnap.exists) {
+              fetchedUsers.push({ uid: currentUser.uid, ...userDocSnap.data() } as User);
+            }
+        }
+        
+        setUsers(fetchedUsers.sort((a,b) => b.score - a.score));
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
   }, [currentUser]);
 
   const getRankColor = (rank: number): string => {
@@ -35,19 +51,23 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
     return 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200';
   }
 
+  if (loading) {
+      return <div className="text-center p-10">טוען דירוג...</div>;
+  }
+
   return (
     <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
       <h2 className="text-4xl font-bold text-center mb-2 text-gray-900 dark:text-white">לוח המובילים</h2>
       <p className="text-center text-gray-500 dark:text-gray-400 mb-8">
-        זהו לוח תוצאות מדומה להדגמה.
+        10 השחקנים המובילים. האם אתה ביניהם?
       </p>
       
       <ul className="space-y-4">
-        {sortedUsers.map((user, index) => {
-          const isCurrentUser = user.name === currentUser.name;
+        {users.map((user, index) => {
+          const isCurrentUser = user.uid === currentUser.uid;
           return (
             <li
-              key={index}
+              key={user.uid}
               className={`flex items-center p-4 rounded-lg transition-all ${isCurrentUser ? 'bg-indigo-100 dark:bg-indigo-900/50 ring-2 ring-indigo-500 scale-105' : 'bg-gray-50 dark:bg-gray-700/50'}`}
             >
               <div className="flex items-center gap-4 w-16">
@@ -59,7 +79,7 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
               
               <div className="flex-grow">
                   <p className={`font-bold text-lg ${isCurrentUser ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-100'}`}>
-                    {user.name}
+                    {user.username}
                   </p>
               </div>
 
