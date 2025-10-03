@@ -19,4 +19,39 @@ const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : fir
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+
+// --- Firestore Offline Support Configuration ---
+// The following configuration is added to address the "Could not reach Cloud Firestore backend"
+// error and improve the application's resilience to network issues.
+
+try {
+  // Firestore settings must be applied before any other Firestore operations.
+  db.settings({
+    // experimentalForceLongPolling can help bypass issues with WebSockets,
+    // which is a potential cause for connectivity problems in some network environments.
+    experimentalForceLongPolling: true,
+    // Use unlimited cache size for offline data.
+    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+  });
+
+  // Enable offline persistence. This allows the app to function with cached data
+  // when the network is unavailable and synchronizes data when the connection is restored.
+  // 'synchronizeTabs: true' ensures data consistency across multiple browser tabs.
+  db.enablePersistence({ synchronizeTabs: true })
+    .catch((err) => {
+      if (err.code === 'failed-precondition') {
+        // This error can occur if the app is open in multiple tabs and persistence
+        // is being initialized in all of them. `synchronizeTabs` helps, but
+        // we log it for debugging.
+        console.warn('Firestore persistence initialization failed: Another tab might be open.', err);
+      } else if (err.code === 'unimplemented') {
+        // The browser does not support the features required for persistence.
+        console.warn('Firestore persistence is not supported in this browser.', err);
+      }
+    });
+} catch (error) {
+    console.error("Failed to apply Firestore offline settings:", error);
+}
+
+
 export { auth, db, app };
