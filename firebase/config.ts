@@ -1,9 +1,6 @@
-// Fix: Corrected firebase imports to use scoped packages to resolve module export errors.
-import { initializeApp, getApps, getApp } from '@firebase/app';
-// Fix: Corrected firebase imports to use scoped packages to resolve module export errors.
-import { getAuth } from '@firebase/auth';
-// Fix: Corrected firebase imports to use scoped packages to resolve module export errors.
 import { getFirestore } from '@firebase/firestore';
+import { initializeApp, getApps, getApp } from '@firebase/app';
+import { getAuth } from '@firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA3UIywHgeGTrJAcuVKqZqpfBO_N5Vf4ws",
