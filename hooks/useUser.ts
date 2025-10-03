@@ -24,8 +24,32 @@ export function useUser() {
         if (userDocSnap.exists) {
           setUser({ uid: firebaseUser.uid, ...(userDocSnap.data() as Omit<AppUser, 'uid'>) });
         } else {
-          console.log("User document does not exist.");
-          setUser(null); // Or handle this case by creating a doc
+          // FIX: If the user is authenticated but has no firestore doc, create one.
+          console.log(`User document for ${firebaseUser.uid} not found. Creating new document.`);
+          try {
+            const username = firebaseUser.email ? firebaseUser.email.split('@')[0] : `user_${firebaseUser.uid.substring(0, 5)}`;
+            
+            const usersRef = db.collection("users");
+            const q = usersRef.where("username", "==", username);
+            const querySnapshot = await q.get();
+
+            const finalUsername = querySnapshot.empty ? username : `${username}_${Math.random().toString(36).substring(2, 7)}`;
+
+            const newUser: AppUser = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                username: finalUsername,
+                score: 0,
+                completedExercises: 0,
+            };
+            
+            await userDocRef.set(newUser);
+            setUser(newUser);
+          } catch (error) {
+            console.error("Failed to create user document:", error);
+            auth.signOut();
+            setUser(null);
+          }
         }
       } else {
         setUser(null);
