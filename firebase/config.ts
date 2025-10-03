@@ -1,6 +1,7 @@
-import { getFirestore } from '@firebase/firestore';
-import { initializeApp, getApps, getApp } from '@firebase/app';
-import { getAuth } from '@firebase/auth';
+// Fix: Updated Firebase imports and initialization to use the v8 namespaced API.
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA3UIywHgeGTrJAcuVKqZqpfBO_N5Vf4ws",
@@ -12,9 +13,10 @@ const firebaseConfig = {
   measurementId: "G-D1F9H37DJX"
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Initialize Firebase using the v8 namespaced syntax
+// Fix: Changed to default import of firebase to access properties like .apps and .initializeApp
+const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 export { auth, db, app };

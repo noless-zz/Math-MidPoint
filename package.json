@@ -11,10 +11,7 @@
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "firebase": "^12.3.0",
-    "@firebase/auth": "^1.11.0",
-    "@firebase/app": "^0.14.3",
-    "@firebase/firestore": "^4.9.2"
+    "firebase": "^12.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

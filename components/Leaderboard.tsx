@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase/config';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import type { User } from '../types';
 import { CrownIcon } from './icons';
+// Fix: Removed unused imports from 'firebase/firestore' as v8 API is used via db object.
 
 interface LeaderboardProps {
   currentUser: User;
@@ -15,9 +15,10 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, orderBy('score', 'desc'), limit(10));
-        const querySnapshot = await getDocs(q);
+        // Fix: Use db.collection().orderBy().limit() and .get() from v8 API.
+        const usersRef = db.collection('users');
+        const q = usersRef.orderBy('score', 'desc').limit(10);
+        const querySnapshot = await q.get();
         const fetchedUsers: User[] = [];
         querySnapshot.forEach((doc) => {
           fetchedUsers.push({ uid: doc.id, ...doc.data() } as User);
@@ -25,10 +26,12 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
 
         const currentUserInList = fetchedUsers.some(u => u.uid === currentUser.uid);
         if (!currentUserInList && currentUser) {
-            const userDocRef = doc(db, "users", currentUser.uid);
-            const userDocSnap = await getDoc(userDocRef);
+            // Fix: Use db.collection().doc() and .get() from v8 API.
+            const userDocRef = db.collection("users").doc(currentUser.uid);
+            const userDocSnap = await userDocRef.get();
             
-            if(userDocSnap.exists()) {
+            // Fix: Use .exists property instead of .exists() method.
+            if(userDocSnap.exists) {
               fetchedUsers.push({ uid: currentUser.uid, ...userDocSnap.data() } as User);
             }
         }

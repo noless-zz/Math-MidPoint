@@ -1,26 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
-// Fix: Corrected firebase imports to use scoped packages to resolve module export errors.
-import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User as FirebaseUser } from '@firebase/auth';
-// Fix: Corrected firebase imports to use scoped packages to resolve module export errors.
-import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc, increment } from '@firebase/firestore';
+// Fix: Use firebase v8 namespaced API to resolve module export errors.
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
 import { auth, db } from '../firebase/config';
-import type { User } from '../types';
+import type { User as AppUser } from '../types';
+
 
 export function useUser() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+    // Fix: Use auth.onAuthStateChanged and firebase.User type from v8 API.
+    // Fix: Corrected the firebase user type to `firebase.auth.User`.
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: firebase.auth.User | null) => {
       if (firebaseUser) {
-        const userDocRef = doc(db, "users", firebaseUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
+        // Fix: Use db.collection().doc() and .get() from v8 API.
+        const userDocRef = db.collection("users").doc(firebaseUser.uid);
+        const userDocSnap = await userDocRef.get();
         
-        if (userDocSnap.exists()) {
-          setUser({ uid: firebaseUser.uid, ...(userDocSnap.data() as Omit<User, 'uid'>) });
+        // Fix: Use .exists property instead of .exists() method.
+        if (userDocSnap.exists) {
+          setUser({ uid: firebaseUser.uid, ...(userDocSnap.data() as Omit<AppUser, 'uid'>) });
         } else {
           console.log("User document does not exist.");
-          setUser(null);
+          setUser(null); // Or handle this case by creating a doc
         }
       } else {
         setUser(null);
@@ -33,46 +38,54 @@ export function useUser() {
   
   const signUp = async (email: string, password: string, username: string) => {
     // 1. Check if username is unique
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("username", "==", username));
-    const querySnapshot = await getDocs(q);
+    // Fix: Use db.collection().where().get() from v8 API.
+    const usersRef = db.collection("users");
+    const q = usersRef.where("username", "==", username);
+    const querySnapshot = await q.get();
 
     if (!querySnapshot.empty) {
         throw { code: 'auth/username-already-in-use' };
     }
     
     // 2. If unique, create user in Auth
-    const credentials = await createUserWithEmailAndPassword(auth, email, password);
+    // Fix: Use auth.createUserWithEmailAndPassword from v8 API.
+    const credentials = await auth.createUserWithEmailAndPassword(email, password);
     const firebaseUser = credentials.user;
     
     // 3. Create user document in Firestore
     if (firebaseUser) {
-      const newUser: Omit<User, 'uid'> = {
+      const newUser: Omit<AppUser, 'uid'> = {
           email: firebaseUser.email!,
           username,
           score: 0,
           completedExercises: 0,
       };
       
-      await setDoc(doc(db, "users", firebaseUser.uid), newUser);
+      // Fix: Use .doc().set() from v8 API.
+      await db.collection("users").doc(firebaseUser.uid).set(newUser);
     }
   };
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    // Fix: Use auth.signInWithEmailAndPassword from v8 API.
+    await auth.signInWithEmailAndPassword(email, password);
   };
 
   const logout = useCallback(async () => {
-    await signOut(auth);
+    // Fix: Use auth.signOut from v8 API.
+    await auth.signOut();
   }, []);
 
   const updateUser = useCallback(async (scoreToAdd: number, exercisesToAdd: number) => {
     if (!user) return;
     
-    const userDocRef = doc(db, "users", user.uid);
-    await updateDoc(userDocRef, {
-        score: increment(scoreToAdd),
-        completedExercises: increment(exercisesToAdd),
+    // Fix: Use db.collection().doc() and .update() from v8 API.
+    const userDocRef = db.collection("users").doc(user.uid);
+    await userDocRef.update({
+        // Fix: Use firebase.firestore.FieldValue.increment from v8 API.
+        // Fix: Added necessary imports for firebase.firestore to be available.
+        score: firebase.firestore.FieldValue.increment(scoreToAdd),
+        completedExercises: firebase.firestore.FieldValue.increment(exercisesToAdd),
     });
     
     setUser(currentUser => {
