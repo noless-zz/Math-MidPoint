@@ -1,5 +1,5 @@
-import { QuestionType, AnswerFormat } from '../types.js';
-import { QuestionType as QT, AnswerFormat as AF } from '../types.js';
+import { QuestionType, AnswerFormat } from '../types.ts';
+import { QuestionType as QT, AnswerFormat as AF } from '../types.ts';
 
 const GRID_RANGE = 10;
 

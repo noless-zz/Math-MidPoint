@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
-import { auth, db } from '../firebase/config.js';
+import { auth, db } from '../firebase/config.ts';
 
 export function useUser() {
   const [user, setUser] = useState(null);

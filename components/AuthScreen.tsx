@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogoIcon } from './icons.jsx';
+import { LogoIcon } from './icons.tsx';
 
 export default function AuthScreen({ onLogin, onSignUp }) {
   const [isLogin, setIsLogin] = useState(true);

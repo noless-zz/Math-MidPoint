@@ -1,4 +1,4 @@
-import { auth } from './config.js';
+import { auth } from './config.ts';
 
 /**
  * Validates user login credentials against Firebase Auth.

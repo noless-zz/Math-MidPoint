@@ -1,6 +1,6 @@
 import React from 'react';
-import { View as ViewEnum } from '../types.js';
-import { LogoIcon, DashboardIcon, LearnIcon, PracticeIcon, LeaderboardIcon, LogoutIcon } from './icons.jsx';
+import { View as ViewEnum } from '../types.ts';
+import { LogoIcon, DashboardIcon, LearnIcon, PracticeIcon, LeaderboardIcon, LogoutIcon } from './icons.tsx';
 
 const NavItem = ({ Icon, label, isActive, onClick }) => {
     const activeClasses = 'bg-indigo-600 text-white';

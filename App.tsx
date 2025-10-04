@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { useUser } from './hooks/useUser.js';
-import { View } from './types.js';
-import AuthScreen from './components/AuthScreen.jsx'; // Changed from LoginScreen
-import Header from './components/Header.jsx';
-import Dashboard from './components/Dashboard.jsx';
-import LearnSection from './components/LearnSection.jsx';
-import PracticeEngine from './components/PracticeEngine.jsx';
-import Leaderboard from './components/Leaderboard.jsx';
+import { useUser } from './hooks/useUser.ts';
+import { View } from './types.ts';
+import AuthScreen from './components/AuthScreen.tsx'; // Changed from LoginScreen
+import Header from './components/Header.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import LearnSection from './components/LearnSection.tsx';
+import PracticeEngine from './components/PracticeEngine.tsx';
+import Leaderboard from './components/Leaderboard.tsx';
 
 export default function App() {
   // useUser now returns loading state and auth functions

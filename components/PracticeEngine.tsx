@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { generateQuestion } from '../services/exerciseGenerator.js';
-import { AnswerFormat as AF, QuestionType as QT } from '../types.js';
-import CoordinatePlane from './CoordinatePlane.jsx';
+import { generateQuestion } from '../services/exerciseGenerator.ts';
+import { AnswerFormat as AF, QuestionType as QT } from '../types.ts';
+import CoordinatePlane from './CoordinatePlane.tsx';
 
 // --- Helper Functions and Components ---
 

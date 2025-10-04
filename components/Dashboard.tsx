@@ -1,6 +1,6 @@
 import React from 'react';
-import { View as ViewEnum } from '../types.js';
-import { LearnIcon, PracticeIcon, LeaderboardIcon, StarIcon } from './icons.jsx';
+import { View as ViewEnum } from '../types.ts';
+import { LearnIcon, PracticeIcon, LeaderboardIcon, StarIcon } from './icons.tsx';
 
 const StatCard = ({ Icon, label, value, color }) => (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex items-center gap-4">

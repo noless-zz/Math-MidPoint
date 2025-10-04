@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogoIcon } from './icons.jsx';
+import { LogoIcon } from './icons.tsx';
 
 export default function LoginScreen({ onLogin }) {
   const [name, setName] = useState('');

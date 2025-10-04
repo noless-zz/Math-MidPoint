@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase/config.js';
-import { CrownIcon } from './icons.jsx';
+import { db } from '../firebase/config.ts';
+import { CrownIcon } from './icons.tsx';
 // Fix: Removed unused imports from 'firebase/firestore' as v8 API is used via db object.
 
 export default function Leaderboard({ currentUser }) {
