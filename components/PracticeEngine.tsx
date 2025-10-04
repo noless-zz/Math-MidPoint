@@ -1,19 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { generateQuestion } from '../services/exerciseGenerator';
-import type { Question, Point, User } from '../types';
-import { AnswerFormat as AF, QuestionType as QT } from '../types';
-import CoordinatePlane from './CoordinatePlane';
-
-interface PracticeEngineProps {
-  user: User;
-  updateUser: (scoreToAdd: number, exercisesToAdd: number) => void;
-}
-
-type AnswerState = 'initial' | 'correct' | 'incorrect';
+import { generateQuestion } from '../services/exerciseGenerator.js';
+import { AnswerFormat as AF, QuestionType as QT } from '../types.js';
+import CoordinatePlane from './CoordinatePlane.jsx';
 
 // --- Helper Functions and Components ---
 
-const FormattedPoint: React.FC<{ point: Point }> = ({ point }) => (
+const FormattedPoint = ({ point }) => (
     <span dir="ltr" className="font-mono">({point.x}, {point.y})</span>
 );
 
@@ -38,22 +30,22 @@ const coordColors = {
     }
 };
 
-const PointSpan: React.FC<{ name: string, point: Point }> = ({ name, point }) => (
-    <span className={`${pointColors[name as keyof typeof pointColors]} font-bold`}>
+const PointSpan = ({ name, point }) => (
+    <span className={`${pointColors[name]} font-bold`}>
         {name}<FormattedPoint point={point} />
     </span>
 );
 
-const QuestionTextView: React.FC<{ question: Question }> = ({ question }) => {
+const QuestionTextView = ({ question }) => {
     const { A, B, M } = question.points;
     if (question.type === QT.FindMidpoint) {
-      return <span>נתונות הנקודות <PointSpan name="A" point={A} /> ו-<PointSpan name="B" point={B!} />. מהי נקודת האמצע M של הקטע AB?</span>;
+      return <span>נתונות הנקודות <PointSpan name="A" point={A} /> ו-<PointSpan name="B" point={B} />. מהי נקודת האמצע M של הקטע AB?</span>;
     } else {
-      return <span>נתונה הנקודה <PointSpan name="A" point={A} /> ונקודת האמצע <PointSpan name="M" point={M!} /> של קטע. מצא את נקודת הקצה השנייה B.</span>;
+      return <span>נתונה הנקודה <PointSpan name="A" point={A} /> ונקודת האמצע <PointSpan name="M" point={M} /> של קטע. מצא את נקודת הקצה השנייה B.</span>;
     }
 };
 
-const EndpointFormula: React.FC<{ variable: string, numM: number, numA: number, colorM: string, colorA: string }> = ({ variable, numM, numA, colorM, colorA }) => {
+const EndpointFormula = ({ variable, numM, numA, colorM, colorA }) => {
     const operator = numA < 0 ? '+' : '-';
     const displayNumA = Math.abs(numA);
     return (
@@ -71,7 +63,7 @@ const EndpointFormula: React.FC<{ variable: string, numM: number, numA: number, 
     );
 };
 
-const FractionFormula: React.FC<{ variable: string, num1: number, num2: number, color1: string, color2: string }> = ({ variable, num1, num2, color1, color2 }) => {
+const FractionFormula = ({ variable, num1, num2, color1, color2 }) => {
     const operator = num2 < 0 ? '-' : '+';
     const displayNum2 = Math.abs(num2);
     return (
@@ -90,7 +82,7 @@ const FractionFormula: React.FC<{ variable: string, num1: number, num2: number, 
     );
 };
 
-const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
+const FormulaDisplay = ({ question }) => {
     const { type, points } = question;
     const { A, B, M } = points;
     
@@ -126,13 +118,13 @@ const FormulaDisplay: React.FC<{ question: Question }> = ({ question }) => {
 
 // --- Main Component ---
 
-export default function PracticeEngine({ updateUser }: PracticeEngineProps): React.ReactElement {
-  const [question, setQuestion] = useState<Question | null>(null);
-  const [userAnswerPoint, setUserAnswerPoint] = useState<Point | null>(null); // For all formats
+export default function PracticeEngine({ updateUser }) {
+  const [question, setQuestion] = useState(null);
+  const [userAnswerPoint, setUserAnswerPoint] = useState(null); // For all formats
   const [userAnswerX, setUserAnswerX] = useState(''); // For Text Input X
   const [userAnswerY, setUserAnswerY] = useState(''); // For Text Input Y
-  const [answerState, setAnswerState] = useState<AnswerState>('initial');
-  const [showFeedback, setShowFeedback] = useState<boolean>(false);
+  const [answerState, setAnswerState] = useState('initial');
+  const [showFeedback, setShowFeedback] = useState(false);
   
   const loadNewQuestion = useCallback(() => {
     setQuestion(generateQuestion());
@@ -174,8 +166,8 @@ export default function PracticeEngine({ updateUser }: PracticeEngineProps): Rea
   
   const renderAnswerInput = () => {
     if (!question) return null;
-    const isCorrectAnswer = (opt: Point) => opt.x === question.answer.x && opt.y === question.answer.y;
-    const isSelectedAnswer = (opt: Point) => userAnswerPoint && opt.x === userAnswerPoint.x && opt.y === userAnswerPoint.y;
+    const isCorrectAnswer = (opt) => opt.x === question.answer.x && opt.y === question.answer.y;
+    const isSelectedAnswer = (opt) => userAnswerPoint && opt.x === userAnswerPoint.x && opt.y === userAnswerPoint.y;
 
     switch(question.answerFormat) {
         case AF.MultipleChoice:

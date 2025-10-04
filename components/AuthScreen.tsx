@@ -1,13 +1,7 @@
-
 import React, { useState } from 'react';
-import { LogoIcon } from './icons';
+import { LogoIcon } from './icons.jsx';
 
-interface AuthScreenProps {
-  onLogin: (email: string, password: string) => Promise<void>;
-  onSignUp: (email: string, password: string, username: string) => Promise<void>;
-}
-
-export default function AuthScreen({ onLogin, onSignUp }: AuthScreenProps): React.ReactElement {
+export default function AuthScreen({ onLogin, onSignUp }) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,7 +9,7 @@ export default function AuthScreen({ onLogin, onSignUp }: AuthScreenProps): Reac
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -25,7 +19,7 @@ export default function AuthScreen({ onLogin, onSignUp }: AuthScreenProps): Reac
       } else {
         await onSignUp(email, password, username);
       }
-    } catch (err: any) {
+    } catch (err) {
       let message = "אירעה שגיאה. נסה שוב.";
       if (err.code === 'auth/email-already-in-use') message = 'כתובת הדוא"ל כבר בשימוש.';
       if (err.code === 'auth/invalid-email') message = 'כתובת הדוא"ל אינה תקינה.';

@@ -1,22 +1,8 @@
-
 import React from 'react';
-import type { User, View } from '../types';
-import { View as ViewEnum } from '../types';
-import { LogoIcon, DashboardIcon, LearnIcon, PracticeIcon, LeaderboardIcon, LogoutIcon } from './icons';
+import { View as ViewEnum } from '../types.js';
+import { LogoIcon, DashboardIcon, LearnIcon, PracticeIcon, LeaderboardIcon, LogoutIcon } from './icons.jsx';
 
-interface HeaderProps {
-  user: User;
-  onNavigate: (view: View) => void;
-  onLogout: () => void;
-  currentView: View;
-}
-
-const NavItem: React.FC<{
-    Icon: React.ElementType;
-    label: string;
-    isActive: boolean;
-    onClick: () => void;
-}> = ({ Icon, label, isActive, onClick }) => {
+const NavItem = ({ Icon, label, isActive, onClick }) => {
     const activeClasses = 'bg-indigo-600 text-white';
     const inactiveClasses = 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700';
     return (
@@ -32,7 +18,7 @@ const NavItem: React.FC<{
 
 
 // Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
-export default function Header({ user, onNavigate, onLogout, currentView }: HeaderProps): React.ReactElement {
+export default function Header({ user, onNavigate, onLogout, currentView }) {
   return (
     <header className="bg-white dark:bg-gray-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

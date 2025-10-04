@@ -1,35 +1,36 @@
 
 import React from 'react';
-import { useUser } from './hooks/useUser';
-import { View } from './types';
-import AuthScreen from './components/AuthScreen'; // Changed from LoginScreen
-import Header from './components/Header';
-import Dashboard from './components/Dashboard';
-import LearnSection from './components/LearnSection';
-import PracticeEngine from './components/PracticeEngine';
-import Leaderboard from './components/Leaderboard';
+import { useUser } from './hooks/useUser.js';
+import { View } from './types.js';
+import AuthScreen from './components/AuthScreen.jsx'; // Changed from LoginScreen
+import Header from './components/Header.jsx';
+import Dashboard from './components/Dashboard.jsx';
+import LearnSection from './components/LearnSection.jsx';
+import PracticeEngine from './components/PracticeEngine.jsx';
+import Leaderboard from './components/Leaderboard.jsx';
 
-export default function App(): React.ReactElement {
+export default function App() {
   // useUser now returns loading state and auth functions
   const { user, loading, signUp, login, logout, updateUser } = useUser();
-  const [view, setView] = React.useState<View>(View.Dashboard);
+  const [view, setView] = React.useState(View.Dashboard);
 
-  const handleNavigate = React.useCallback((newView: View) => {
+  const handleNavigate = React.useCallback((newView) => {
     setView(newView);
   }, []);
 
-  const renderView = (): React.ReactElement => {
+  const renderView = () => {
     // User is guaranteed to be non-null here
     switch (view) {
       case View.Learn:
         return <LearnSection />;
       case View.Practice:
-        return <PracticeEngine user={user!} updateUser={updateUser} />;
+        // FIX: Removed unused `user` prop from PracticeEngine to resolve TypeScript error. The component only expects `updateUser`.
+        return <PracticeEngine updateUser={updateUser} />;
       case View.Leaderboard:
-        return <Leaderboard currentUser={user!} />;
+        return <Leaderboard currentUser={user} />;
       case View.Dashboard:
       default:
-        return <Dashboard user={user!} onNavigate={handleNavigate} />;
+        return <Dashboard user={user} onNavigate={handleNavigate} />;
     }
   };
   

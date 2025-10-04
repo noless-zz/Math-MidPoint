@@ -1,21 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import type { Point } from '../types';
-
-interface CoordinatePlaneProps {
-    pointsToDraw: { A: Point, B?: Point, M?: Point };
-    onPointSelect: (point: Point) => void;
-    interactive: boolean;
-    answerPoint: Point | null;
-    correctAnswer: Point;
-    showCorrectAnswer: boolean;
-}
 
 const VIEWBOX_SIZE = 400;
 const GRID_RANGE = 10;
 const PADDING = 25;
 const CONTENT_SIZE = VIEWBOX_SIZE - 2 * PADDING;
 
-// Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 export default function CoordinatePlane({
     pointsToDraw,
     onPointSelect,
@@ -23,16 +12,16 @@ export default function CoordinatePlane({
     answerPoint,
     correctAnswer,
     showCorrectAnswer
-}: CoordinatePlaneProps): React.ReactElement {
-    const [hoverPoint, setHoverPoint] = useState<Point | null>(null);
+}) {
+    const [hoverPoint, setHoverPoint] = useState(null);
 
-    const toSvgCoords = (p: Point): { x: number, y: number } => {
+    const toSvgCoords = (p) => {
         const x = PADDING + (p.x + GRID_RANGE) / (2 * GRID_RANGE) * CONTENT_SIZE;
         const y = PADDING + (GRID_RANGE - p.y) / (2 * GRID_RANGE) * CONTENT_SIZE;
         return { x, y };
     };
     
-    const fromSvgCoords = (svgX: number, svgY: number): Point => {
+    const fromSvgCoords = (svgX, svgY) => {
         const x = ((svgX - PADDING) / CONTENT_SIZE) * (2 * GRID_RANGE) - GRID_RANGE;
         const y = GRID_RANGE - ((svgY - PADDING) / CONTENT_SIZE) * (2 * GRID_RANGE);
         return { x: Math.round(x), y: Math.round(y) };
@@ -107,7 +96,7 @@ export default function CoordinatePlane({
         }
         
         const positions = new Map();
-        const occupiedRects: { x: number, y: number, width: number, height: number }[] = [];
+        const occupiedRects = [];
         
         const candidates = [
             { anchor: 'start', dx: 8, dy: 14 }, // bottom-right
@@ -167,7 +156,7 @@ export default function CoordinatePlane({
     }, [pointsToDraw, answerPoint, correctAnswer, showCorrectAnswer]);
 
 
-    const getEventCoords = (e: React.MouseEvent<SVGSVGElement> | React.TouchEvent<SVGSVGElement>): {x: number, y: number} => {
+    const getEventCoords = (e) => {
         const svg = e.currentTarget;
         const pt = svg.createSVGPoint();
         const isTouchEvent = 'touches' in e;
@@ -176,7 +165,7 @@ export default function CoordinatePlane({
         return pt.matrixTransform(svg.getScreenCTM()?.inverse());
     };
     
-    const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const handleMouseMove = (e) => {
         if (!interactive) return;
         const { x, y } = getEventCoords(e);
         setHoverPoint(fromSvgCoords(x, y));
@@ -186,7 +175,7 @@ export default function CoordinatePlane({
         setHoverPoint(null);
     };
 
-    const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    const handleClick = (e) => {
         if (!interactive) return;
         const { x, y } = getEventCoords(e);
         const selectedPoint = fromSvgCoords(x, y);
@@ -261,7 +250,7 @@ export default function CoordinatePlane({
                         key={id}
                         x={props.x}
                         y={props.y}
-                        textAnchor={props.textAnchor as 'start' | 'end' | 'middle'}
+                        textAnchor={props.textAnchor}
                         className={`${props.color} text-sm font-bold select-none pointer-events-none`}
                         style={{ fontSize: '10px' }}
                     >

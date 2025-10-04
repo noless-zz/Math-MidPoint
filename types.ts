@@ -1,43 +1,41 @@
+/**
+ * @typedef {Object} Point
+ * @property {number} x
+ * @property {number} y
+ */
 
-export interface Point {
-  x: number;
-  y: number;
-}
+/**
+ * @typedef {Object} User
+ * @property {string} uid
+ * @property {string} email
+ * @property {string} username
+ * @property {number} score
+ * @property {number} completedExercises
+ */
 
-export interface User {
-  uid: string;
-  email: string;
-  username: string;
-  score: number;
-  completedExercises: number;
-}
+export const QuestionType = {
+  FindMidpoint: 'FIND_MIDPOINT',
+  FindEndpoint: 'FIND_ENDPOINT',
+};
 
-export enum QuestionType {
-  FindMidpoint = 'FIND_MIDPOINT',
-  FindEndpoint = 'FIND_ENDPOINT',
-}
+export const AnswerFormat = {
+  MultipleChoice: 'MULTIPLE_CHOICE',
+  Graphical: 'GRAPHICAL',
+  TextInput: 'TEXT_INPUT',
+};
 
-export enum AnswerFormat {
-  MultipleChoice = 'MULTIPLE_CHOICE',
-  Graphical = 'GRAPHICAL',
-  TextInput = 'TEXT_INPUT',
-}
+/**
+ * @typedef {Object} Question
+ * @property {QuestionType} type
+ * @property {{ A: Point; B?: Point; M?: Point; }} points
+ * @property {Point} answer
+ * @property {AnswerFormat} answerFormat
+ * @property {Point[]} [options]
+ */
 
-export interface Question {
-  type: QuestionType;
-  points: {
-    A: Point;
-    B?: Point;
-    M?: Point;
-  };
-  answer: Point;
-  answerFormat: AnswerFormat;
-  options?: Point[];
-}
-
-export enum View {
-    Dashboard = 'DASHBOARD',
-    Learn = 'LEARN',
-    Practice = 'PRACTICE',
-    Leaderboard = 'LEADERBOARD'
-}
+export const View = {
+    Dashboard: 'DASHBOARD',
+    Learn: 'LEARN',
+    Practice: 'PRACTICE',
+    Leaderboard: 'LEADERBOARD'
+};

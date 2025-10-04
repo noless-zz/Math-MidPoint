@@ -1,16 +1,9 @@
-
 import React from 'react';
 
-interface MathInputProps {
-    value: string;
-    onChange: (value: string) => void;
-    disabled: boolean;
-}
-
 // Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
-export default function MathInput({ value, onChange, disabled }: MathInputProps): React.ReactElement {
+export default function MathInput({ value, onChange, disabled }) {
     
-    const handleKeyPress = (key: string) => {
+    const handleKeyPress = (key) => {
         if (disabled) return;
         if (key === 'del') {
             onChange(value.slice(0, -1));

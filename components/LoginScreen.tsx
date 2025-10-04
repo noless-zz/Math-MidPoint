@@ -1,16 +1,10 @@
-
 import React, { useState } from 'react';
-import { LogoIcon } from './icons';
+import { LogoIcon } from './icons.jsx';
 
-interface LoginScreenProps {
-  onLogin: (name: string) => void;
-}
-
-// Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
-export default function LoginScreen({ onLogin }: LoginScreenProps): React.ReactElement {
+export default function LoginScreen({ onLogin }) {
   const [name, setName] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (name.trim()) {
       onLogin(name.trim());

@@ -1,15 +1,8 @@
-
 import React from 'react';
-import type { User, View } from '../types';
-import { View as ViewEnum } from '../types';
-import { LearnIcon, PracticeIcon, LeaderboardIcon, StarIcon } from './icons';
+import { View as ViewEnum } from '../types.js';
+import { LearnIcon, PracticeIcon, LeaderboardIcon, StarIcon } from './icons.jsx';
 
-interface DashboardProps {
-  user: User;
-  onNavigate: (view: View) => void;
-}
-
-const StatCard: React.FC<{ Icon: React.ElementType; label: string; value: string | number; color: string }> = ({ Icon, label, value, color }) => (
+const StatCard = ({ Icon, label, value, color }) => (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex items-center gap-4">
         <div className={`p-3 rounded-full ${color}`}>
             <Icon className="h-7 w-7 text-white" />
@@ -21,7 +14,7 @@ const StatCard: React.FC<{ Icon: React.ElementType; label: string; value: string
     </div>
 );
 
-const ActionCard: React.FC<{ Icon: React.ElementType; title: string; description: string; buttonText: string; onClick: () => void, color: string }> = ({ Icon, title, description, buttonText, onClick, color }) => (
+const ActionCard = ({ Icon, title, description, buttonText, onClick, color }) => (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex flex-col items-start gap-4 transition-transform transform hover:-translate-y-1">
         <div className={`p-3 rounded-full ${color}`}>
             <Icon className="h-8 w-8 text-white" />
@@ -36,7 +29,7 @@ const ActionCard: React.FC<{ Icon: React.ElementType; title: string; description
 
 
 // Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
-export default function Dashboard({ user, onNavigate }: DashboardProps): React.ReactElement {
+export default function Dashboard({ user, onNavigate }) {
   return (
     <div className="space-y-8">
       <div>

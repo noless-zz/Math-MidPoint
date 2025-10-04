@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase/config';
-import type { User } from '../types';
-import { CrownIcon } from './icons';
+import { db } from '../firebase/config.js';
+import { CrownIcon } from './icons.jsx';
 // Fix: Removed unused imports from 'firebase/firestore' as v8 API is used via db object.
 
-interface LeaderboardProps {
-  currentUser: User;
-}
-
-export default function Leaderboard({ currentUser }: LeaderboardProps): React.ReactElement {
-  const [users, setUsers] = useState<User[]>([]);
+export default function Leaderboard({ currentUser }) {
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,9 +14,9 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
         const usersRef = db.collection('users');
         const q = usersRef.orderBy('score', 'desc').limit(10);
         const querySnapshot = await q.get();
-        const fetchedUsers: User[] = [];
+        const fetchedUsers = [];
         querySnapshot.forEach((doc) => {
-          fetchedUsers.push({ uid: doc.id, ...doc.data() } as User);
+          fetchedUsers.push({ uid: doc.id, ...doc.data() });
         });
 
         const currentUserInList = fetchedUsers.some(u => u.uid === currentUser.uid);
@@ -32,7 +27,7 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
             
             // Fix: Use .exists property instead of .exists() method.
             if(userDocSnap.exists) {
-              fetchedUsers.push({ uid: currentUser.uid, ...userDocSnap.data() } as User);
+              fetchedUsers.push({ uid: currentUser.uid, ...userDocSnap.data() });
             }
         }
         
@@ -47,7 +42,7 @@ export default function Leaderboard({ currentUser }: LeaderboardProps): React.Re
     fetchUsers();
   }, [currentUser]);
 
-  const getRankColor = (rank: number): string => {
+  const getRankColor = (rank) => {
     if (rank === 0) return 'bg-amber-400 text-amber-900';
     if (rank === 1) return 'bg-slate-300 text-slate-800';
     if (rank === 2) return 'bg-orange-400 text-orange-900';

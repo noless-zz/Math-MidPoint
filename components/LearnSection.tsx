@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
-const Fraction: React.FC<{ numerator: React.ReactNode; denominator: React.ReactNode }> = ({ numerator, denominator }) => (
+const Fraction = ({ numerator, denominator }) => (
     <div className="inline-flex flex-col items-center align-middle">
         <span className="px-2">{numerator}</span>
         <hr className="w-full border-t-2 border-gray-700 dark:border-gray-200 my-1" />
@@ -8,14 +8,14 @@ const Fraction: React.FC<{ numerator: React.ReactNode; denominator: React.ReactN
     </div>
 );
 
-const MathDisplay: React.FC<{ variable: string; children: React.ReactNode }> = ({ variable, children }) => (
+const MathDisplay = ({ variable, children }) => (
      <div className="flex items-center justify-center gap-2 text-xl md:text-2xl font-medium text-gray-800 dark:text-gray-100">
         <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
         {children}
     </div>
 );
 
-const FormulaBox: React.FC<{ title: string; children: React.ReactNode; explanation: string }> = ({ title, children, explanation }) => (
+const FormulaBox = ({ title, children, explanation }) => (
     <div className="bg-indigo-50 dark:bg-indigo-900/50 border-r-4 border-indigo-500 p-6 rounded-lg">
         <h3 className="text-xl font-semibold text-indigo-800 dark:text-indigo-200">{title}</h3>
         <div dir="ltr" className="my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center shadow-inner min-h-[80px] flex items-center justify-center">
@@ -32,35 +32,35 @@ const PADDING = 15;
 const CONTENT_SIZE = VIEWBOX_SIZE - 2 * PADDING;
 
 // Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
-export default function LearnSection(): React.ReactElement {
+export default function LearnSection() {
   const [pointA, setPointA] = useState({ x: -6, y: -5 });
   const [pointB, setPointB] = useState({ x: 4, y: 7 });
-  const [draggedPoint, setDraggedPoint] = useState<'A' | 'B' | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const [draggedPoint, setDraggedPoint] = useState(null);
+  const svgRef = useRef(null);
 
   const pointM = {
     x: (pointA.x + pointB.x) / 2,
     y: (pointA.y + pointB.y) / 2,
   };
 
-  const toSvgCoords = useCallback((p: {x: number, y: number}) => {
+  const toSvgCoords = useCallback((p) => {
     const x = PADDING + (p.x + GRID_RANGE) / (2 * GRID_RANGE) * CONTENT_SIZE;
     const y = PADDING + (GRID_RANGE - p.y) / (2 * GRID_RANGE) * CONTENT_SIZE;
     return { x, y };
   }, []);
 
-  const fromSvgCoords = useCallback((svgX: number, svgY: number) => {
+  const fromSvgCoords = useCallback((svgX, svgY) => {
     const x = ((svgX - PADDING) / CONTENT_SIZE) * (2 * GRID_RANGE) - GRID_RANGE;
     const y = GRID_RANGE - ((svgY - PADDING) / CONTENT_SIZE) * (2 * GRID_RANGE);
     return { x, y };
   }, []);
 
-  const handleDragStart = (point: 'A' | 'B') => (e: React.MouseEvent | React.TouchEvent) => {
+  const handleDragStart = (point) => (e) => {
     e.preventDefault();
     setDraggedPoint(point);
   };
 
-  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
+  const handleDragMove = useCallback((e) => {
     if (!draggedPoint || !svgRef.current) return;
     e.preventDefault();
 

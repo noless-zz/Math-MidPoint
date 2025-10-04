@@ -1,25 +1,24 @@
-
-import { Question, Point, QuestionType, AnswerFormat } from '../types';
-import { QuestionType as QT, AnswerFormat as AF } from '../types';
+import { QuestionType, AnswerFormat } from '../types.js';
+import { QuestionType as QT, AnswerFormat as AF } from '../types.js';
 
 const GRID_RANGE = 10;
 
-const getRandomInt = (min: number, max: number): number => {
+const getRandomInt = (min, max) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
-const getRandomPoint = (): Point => {
+const getRandomPoint = () => {
   return {
     x: getRandomInt(-GRID_RANGE, GRID_RANGE),
     y: getRandomInt(-GRID_RANGE, GRID_RANGE),
   };
 };
 
-const isPointInRange = (p: Point): boolean => 
+const isPointInRange = (p) => 
     Math.abs(p.x) <= GRID_RANGE && Math.abs(p.y) <= GRID_RANGE;
 
 
-const shuffleArray = <T,>(array: T[]): T[] => {
+const shuffleArray = (array) => {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
@@ -27,12 +26,12 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return array;
 };
 
-export function generateQuestion(): Question {
-  const questionType: QuestionType = Math.random() < 0.7 ? QT.FindMidpoint : QT.FindEndpoint;
-  const answerFormat: AnswerFormat = [AF.MultipleChoice, AF.Graphical, AF.TextInput][getRandomInt(0,2)];
+export function generateQuestion() {
+  const questionType = Math.random() < 0.7 ? QT.FindMidpoint : QT.FindEndpoint;
+  const answerFormat = [AF.MultipleChoice, AF.Graphical, AF.TextInput][getRandomInt(0,2)];
 
-  let A: Point, B: Point, M: Point;
-  let question: Question;
+  let A, B, M;
+  let question;
 
   if (questionType === QT.FindMidpoint) {
     let isValid = false;
@@ -87,9 +86,9 @@ export function generateQuestion(): Question {
   }
 
   if (answerFormat === AF.MultipleChoice) {
-    const options: Point[] = [question.answer];
+    const options = [question.answer];
     while (options.length < 4) {
-      const wrongAnswer: Point = {
+      const wrongAnswer = {
         x: question.answer.x + getRandomInt(-3, 3),
         y: question.answer.y + getRandomInt(-3, 3),
       };
