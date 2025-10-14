@@ -39,7 +39,12 @@ export default function AuthScreen({ onLogin, onSignUp, onLoginAsGuest }) {
     try {
         await onLoginAsGuest();
     } catch (err) {
-        setError("התחברות כאורח נכשלה. נסה שוב.");
+        let message = "התחברות כאורח נכשלה. נסה שוב.";
+        // This is the error code Firebase sends when the sign-in method is disabled in the console.
+        if (err.code === 'auth/operation-not-allowed') {
+            message = "התחברות כאורח אינה מופעלת. יש להפעיל אותה בהגדרות Firebase.";
+        }
+        setError(message);
     } finally {
         setLoading(false);
     }
