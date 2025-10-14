@@ -40,6 +40,7 @@ export default function AuthScreen({ onLogin, onSignUp, onLoginAsGuest }) {
         await onLoginAsGuest();
     } catch (err) {
         setError("התחברות כאורח נכשלה. נסה שוב.");
+    } finally {
         setLoading(false);
     }
   };
