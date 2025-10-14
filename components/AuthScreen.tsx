@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LogoIcon } from './icons.tsx';
 
-export default function AuthScreen({ onLogin, onSignUp }) {
+export default function AuthScreen({ onLogin, onSignUp, onLoginAsGuest }) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,9 +26,21 @@ export default function AuthScreen({ onLogin, onSignUp }) {
       if (err.code === 'auth/weak-password') message = 'הסיסמה חלשה מדי. נדרשים לפחות 6 תווים.';
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') message = 'דוא"ל או סיסמה שגויים.';
       if (err.code === 'auth/username-already-in-use') message = 'שם המשתמש כבר תפוס. בחר שם אחר.';
+      if (err.code === 'auth/profane-username') message = 'שם המשתמש מכיל מילים לא הולמות. בחר שם אחר.';
       setError(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+        await onLoginAsGuest();
+    } catch (err) {
+        setError("התחברות כאורח נכשלה. נסה שוב.");
+        setLoading(false);
     }
   };
 
@@ -84,6 +96,21 @@ export default function AuthScreen({ onLogin, onSignUp }) {
             {loading ? 'טוען...' : (isLogin ? 'התחבר' : 'הירשם')}
           </button>
         </form>
+        
+        <div className="my-4 flex items-center">
+            <hr className="flex-grow border-t border-gray-300 dark:border-gray-600"/>
+            <span className="mx-4 text-gray-500 dark:text-gray-400 text-sm">או</span>
+            <hr className="flex-grow border-t border-gray-300 dark:border-gray-600"/>
+        </div>
+
+        <button
+            type="button"
+            onClick={handleGuestLogin}
+            disabled={loading}
+            className="w-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-100 font-bold text-lg py-3 px-4 rounded-lg transition disabled:opacity-50"
+        >
+            המשך כאורח/ת
+        </button>
 
         <p className="text-center mt-6">
           {isLogin ? 'אין לך חשבון?' : 'יש לך כבר חשבון?'}

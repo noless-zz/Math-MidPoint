@@ -7,10 +7,12 @@
 /**
  * @typedef {Object} User
  * @property {string} uid
- * @property {string} email
+ * @property {string | null} email
  * @property {string} username
  * @property {number} score
  * @property {number} completedExercises
+ * @property {boolean} [isGuest]
+ * @property {boolean} [emailVerified]
  */
 
 export const QuestionType = {

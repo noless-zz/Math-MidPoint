@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase/config.ts';
 import { CrownIcon } from './icons.tsx';
-// Fix: Removed unused imports from 'firebase/firestore' as v8 API is used via db object.
+
+const USER_COLLECTION = 'midpointMasterUsers';
 
 export default function Leaderboard({ currentUser }) {
   const [users, setUsers] = useState([]);
@@ -10,8 +11,7 @@ export default function Leaderboard({ currentUser }) {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Fix: Use db.collection().orderBy().limit() and .get() from v8 API.
-        const usersRef = db.collection('users');
+        const usersRef = db.collection(USER_COLLECTION);
         const q = usersRef.orderBy('score', 'desc').limit(10);
         const querySnapshot = await q.get();
         const fetchedUsers = [];
@@ -20,12 +20,11 @@ export default function Leaderboard({ currentUser }) {
         });
 
         const currentUserInList = fetchedUsers.some(u => u.uid === currentUser.uid);
-        if (!currentUserInList && currentUser) {
-            // Fix: Use db.collection().doc() and .get() from v8 API.
-            const userDocRef = db.collection("users").doc(currentUser.uid);
+        
+        if (!currentUserInList && currentUser && !currentUser.isGuest) {
+            const userDocRef = db.collection(USER_COLLECTION).doc(currentUser.uid);
             const userDocSnap = await userDocRef.get();
             
-            // Fix: Use .exists property instead of .exists() method.
             if(userDocSnap.exists) {
               fetchedUsers.push({ uid: currentUser.uid, ...userDocSnap.data() });
             }
@@ -66,7 +65,7 @@ export default function Leaderboard({ currentUser }) {
           return (
             <li
               key={user.uid}
-              className={`flex items-center p-4 rounded-lg transition-all ${isCurrentUser ? 'bg-indigo-100 dark:bg-indigo-900/50 ring-2 ring-indigo-500 scale-105' : 'bg-gray-50 dark:bg-gray-700/50'}`}
+              className={`flex items-center p-4 rounded-lg transition-all ${isCurrentUser && !currentUser.isGuest ? 'bg-indigo-100 dark:bg-indigo-900/50 ring-2 ring-indigo-500 scale-105' : 'bg-gray-50 dark:bg-gray-700/50'}`}
             >
               <div className="flex items-center gap-4 w-16">
                 <span className={`flex items-center justify-center h-8 w-8 rounded-full font-bold text-sm ${getRankColor(index)}`}>
@@ -76,7 +75,7 @@ export default function Leaderboard({ currentUser }) {
               </div>
               
               <div className="flex-grow">
-                  <p className={`font-bold text-lg ${isCurrentUser ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-100'}`}>
+                  <p className={`font-bold text-lg ${isCurrentUser && !currentUser.isGuest ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-100'}`}>
                     {user.username}
                   </p>
               </div>
