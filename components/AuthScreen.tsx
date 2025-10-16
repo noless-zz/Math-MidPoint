@@ -1,132 +1,220 @@
-import React, { useState } from 'react';
+
+
+import React, { useState, useEffect } from 'react';
 import { LogoIcon } from './icons.tsx';
 
-export default function AuthScreen({ onLogin, onSignUp, onLoginAsGuest }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+// A simple Google Icon component
+const GoogleIcon = (props) => (
+  <svg viewBox="0 0 48 48" {...props}>
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+    <path fill="none" d="M0 0h48v48H0z"></path>
+  </svg>
+);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      if (isLogin) {
-        await onLogin(email, password);
+const UserIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    </svg>
+);
+
+const CopyIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+  </svg>
+);
+
+const CheckIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+);
+
+
+export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authError, onSignInWithEmail, onSignUpWithEmail }) {
+    const [mode, setMode] = useState('signIn'); // 'signIn' or 'signUp'
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [copied, setCopied] = useState(false);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (mode === 'signIn') {
+        onSignInWithEmail(email, password);
       } else {
-        await onSignUp(email, password, username);
+        onSignUpWithEmail(email, password);
       }
-    } catch (err) {
-      let message = "אירעה שגיאה. נסה שוב.";
-      if (err.code === 'auth/email-already-in-use') message = 'כתובת הדוא"ל כבר בשימוש.';
-      if (err.code === 'auth/invalid-email') message = 'כתובת הדוא"ל אינה תקינה.';
-      if (err.code === 'auth/weak-password') message = 'הסיסמה חלשה מדי. נדרשים לפחות 6 תווים.';
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') message = 'דוא"ל או סיסמה שגויים.';
-      if (err.code === 'auth/username-already-in-use') message = 'שם המשתמש כבר תפוס. בחר שם אחר.';
-      if (err.code === 'auth/profane-username') message = 'שם המשתמש מכיל מילים לא הולמות. בחר שם אחר.';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const handleGuestLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-        await onLoginAsGuest();
-    } catch (err) {
-        let message = "התחברות כאורח נכשלה. נסה שוב.";
-        // This is the error code Firebase sends when the sign-in method is disabled in the console.
-        if (err.code === 'auth/operation-not-allowed') {
-            message = "התחברות כאורח אינה מופעלת. יש להפעיל אותה בהגדרות Firebase.";
-        }
-        setError(message);
-    } finally {
-        setLoading(false);
-    }
-  };
+    const handleCopy = (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        });
+    };
+    
+    const getErrorMessage = (error) => {
+      if (!error) return null;
+      switch (error.code) {
+        case 'auth/operation-not-supported-in-this-environment':
+          return null; // This case is handled by a special banner
+        case 'auth/unauthorized-domain':
+          return null; // This case is handled by a special banner
+        case 'auth/invalid-email':
+          return 'כתובת האימייל אינה תקינה.';
+        case 'auth/user-not-found':
+          return 'לא נמצא משתמש עם כתובת אימייל זו.';
+        case 'auth/wrong-password':
+          return 'הסיסמה שגויה. נסה/י שוב.';
+        case 'auth/email-already-in-use':
+          return 'כתובת האימייל כבר קיימת במערכת.';
+        case 'auth/weak-password':
+          return 'הסיסמה חלשה מדי. נדרשים לפחות 6 תווים.';
+        default:
+          return error.message || 'אירעה שגיאה. נסה שוב.';
+      }
+    };
+    
+  const renderAuthError = () => {
+    if (!authError) return null;
+    const genericErrorMessage = getErrorMessage(authError);
 
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setError('');
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8">
-        <div className="flex justify-center mb-6">
-            <LogoIcon className="h-20 w-20 text-indigo-500" />
+    if (authError.code === 'auth/operation-not-supported-in-this-environment') {
+      return (
+        <div className="bg-yellow-50 border-2 border-yellow-500 text-yellow-900 p-6 rounded-lg mb-6 text-right shadow-lg" role="alert">
+          <p className="text-center font-extrabold text-2xl">תכונה לא זמינה בסביבה זו</p>
+          <p className="text-center mt-3 text-md">
+            ההתחברות באמצעות גוגל אינה נתמכת בסביבת ההרצה הנוכחית של AI Studio.
+          </p>
+          <div className="mt-4 text-sm">
+            <p>
+              <strong>למה זה קורה?</strong> האפליקציה רצה בתוך "ארגז חול" (sandbox) מאובטח המגביל פתיחת חלונות קופצים, שהם חיוניים לתהליך ההתחברות של גוגל. זוהי מגבלה של הסביבה, לא שגיאה באפליקציה.
+            </p>
+            <p className="mt-3 font-semibold">
+              ✅ באפשרותך להשתמש בטופס האימייל והסיסמה או להמשיך כאורח/ת.
+            </p>
+          </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
-            {isLogin ? 'התחברות למרכז התרגול' : 'הרשמה למרכז התרגול'}
-        </h1>
-        <p className="text-md text-center text-gray-500 dark:text-gray-400 mb-4">
-            כיתה י' 4 יח"ל - אלוני יצחק
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {!isLogin && (
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="שם משתמש"
-              required
-              className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-indigo-500 focus:ring-0 rounded-lg text-lg"
-            />
-          )}
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder='דוא"ל'
-            required
-            className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-indigo-500 focus:ring-0 rounded-lg text-lg"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="סיסמה"
-            required
-            className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-indigo-500 focus:ring-0 rounded-lg text-lg"
-          />
+      );
+    }
 
-          {error && <p className="text-red-500 text-center">{error}</p>}
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-bold text-lg py-3 px-4 rounded-lg transition"
-          >
-            {loading ? 'טוען...' : (isLogin ? 'התחבר' : 'הירשם')}
-          </button>
+    if (authError.code === 'auth/unauthorized-domain') {
+      const firebaseUrl = `https://console.firebase.google.com/project/middlepoint-f5127/authentication/settings`;
+      const gcpUrl = `https://console.cloud.google.com/apis/credentials?project=middlepoint-f5127`;
+      const wildcardDomain = '*.aistudio.google.com/*';
+
+      return (
+        <div className="bg-red-50 border-2 border-red-500 text-red-900 p-6 rounded-lg mb-6 text-right shadow-lg" role="alert">
+          <p className="text-center font-extrabold text-2xl">שגיאת הגדרות - נדרשת פעולה מצדך</p>
+           <p className="mt-6 text-md font-bold text-center bg-yellow-200 p-2 rounded">
+            שגיאה זו חלה רק על התחברות עם גוגל. ניתן להשתמש באימייל וסיסמה.
+          </p>
+        </div>
+      );
+    }
+    
+    if (genericErrorMessage) {
+       return (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+          <strong className="font-bold">שגיאה: </strong>
+          <span className="block sm:inline">{genericErrorMessage}</span>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+    
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+        <div className="text-center">
+            <LogoIcon className="h-16 w-16 text-indigo-500 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ברוכים הבאים</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2 mb-8">
+              {mode === 'signIn' ? 'התחבר/י לחשבונך' : 'צור/י חשבון חדש'}
+            </p>
+        </div>
+
+        {renderAuthError()}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-right">
+                    אימייל
+                </label>
+                <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+            </div>
+
+            <div>
+                <label htmlFor="password"  className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-right">
+                    סיסמה
+                </label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+            </div>
+            
+             <button
+              type="submit"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              {mode === 'signIn' ? 'התחברות' : 'הרשמה'}
+            </button>
         </form>
         
-        <div className="my-4 flex items-center">
-            <hr className="flex-grow border-t border-gray-300 dark:border-gray-600"/>
-            <span className="mx-4 text-gray-500 dark:text-gray-400 text-sm">או</span>
-            <hr className="flex-grow border-t border-gray-300 dark:border-gray-600"/>
+        <div className="text-center mt-4">
+            <button onClick={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')} className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
+                {mode === 'signIn' ? 'אין לך חשבון? הרשמ/י' : 'יש לך כבר חשבון? התחבר/י'}
+            </button>
         </div>
-
-        <button
-            type="button"
-            onClick={handleGuestLogin}
-            disabled={loading}
-            className="w-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-100 font-bold text-lg py-3 px-4 rounded-lg transition disabled:opacity-50"
-        >
-            המשך כאורח/ת
-        </button>
-
-        <p className="text-center mt-6">
-          {isLogin ? 'אין לך חשבון?' : 'יש לך כבר חשבון?'}
-          <button onClick={toggleMode} className="font-semibold text-indigo-500 hover:text-indigo-400 ml-2">
-            {isLogin ? 'הירשם כאן' : 'התחבר כאן'}
-          </button>
-        </p>
+        
+        <div className="mt-6">
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">או</span>
+                </div>
+            </div>
+            <div className="mt-6 grid grid-cols-1 gap-3">
+                 {authError?.code !== 'auth/operation-not-supported-in-this-environment' && (
+                    <button
+                      onClick={onSignInWithGoogle}
+                      className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2.5 px-4 rounded-lg transition-colors hover:bg-gray-50 dark:hover:bg-gray-600 text-sm"
+                    >
+                      <GoogleIcon className="h-5 w-5" />
+                      <span>המשך עם גוגל</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={onSignInAsGuest}
+                    className="w-full flex items-center justify-center gap-3 bg-gray-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors hover:bg-gray-600 text-sm"
+                  >
+                    <UserIcon className="h-5 w-5" />
+                    <span>המשך כאורח</span>
+                  </button>
+            </div>
+        </div>
       </div>
     </div>
   );

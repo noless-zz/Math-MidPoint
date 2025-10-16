@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { useUser } from './hooks/useUser.ts';
 import { View } from './types.ts';
@@ -8,11 +9,16 @@ import Dashboard from './components/Dashboard.tsx';
 import LearnSection from './components/LearnSection.tsx';
 import PracticeEngine from './components/PracticeEngine.tsx';
 import Leaderboard from './components/Leaderboard.tsx';
-import VerificationBanner from './components/VerificationBanner.tsx';
 
 export default function App() {
-  const { user, loading, signUp, login, logout, updateUser, loginAsGuest, resendVerificationEmail } = useUser();
+  const { user, loading, signInWithGoogle, signInAsGuest, logout, updateUser, authError, signInWithEmail, signUpWithEmail } = useUser();
   const [view, setView] = React.useState(View.Dashboard);
+
+  React.useEffect(() => {
+    if (authError) {
+      console.error("An authentication error was caught by the App component:", authError);
+    }
+  }, [authError]);
 
   const handleNavigate = React.useCallback((newView) => {
     setView(newView);
@@ -42,12 +48,17 @@ export default function App() {
   }
 
   if (!user) {
-    return <AuthScreen onLogin={login} onSignUp={signUp} onLoginAsGuest={loginAsGuest} />;
+    return <AuthScreen 
+      onSignInWithGoogle={signInWithGoogle} 
+      onSignInAsGuest={signInAsGuest} 
+      authError={authError} 
+      onSignInWithEmail={signInWithEmail}
+      onSignUpWithEmail={signUpWithEmail}
+    />;
   }
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 font-sans">
-      {!user.isGuest && !user.emailVerified && <VerificationBanner onResend={resendVerificationEmail} />}
       <Header user={user} onNavigate={handleNavigate} onLogout={logout} currentView={view} />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {renderView()}

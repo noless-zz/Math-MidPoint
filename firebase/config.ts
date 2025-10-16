@@ -1,6 +1,10 @@
-// Fix: Updated Firebase imports and initialization to use the v8 namespaced API.
+// Fix: Use Firebase v8 imports to resolve module export errors.
+// Fix: Updated Firebase imports to use the v8 SDK directly, removing the compat layer.
+// @fixtsc
+// Re-enabling compat layer as v8 syntax is used with what appears to be a v9+ SDK installation.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
+// Firestore is re-enabled to support email/password account creation.
 import 'firebase/compat/firestore';
 
 const firebaseConfig = {
@@ -13,45 +17,27 @@ const firebaseConfig = {
   measurementId: "G-D1F9H37DJX"
 };
 
-// Initialize Firebase using the v8 namespaced syntax
-// Fix: Changed to default import of firebase to access properties like .apps and .initializeApp
-const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();
+// Initialize Firebase
+// Fix: Use v8 syntax for initialization.
+const app = firebase.initializeApp(firebaseConfig);
+
+// Initialize Firebase Authentication
+// Fix: Use v8 syntax to get auth instance.
 const auth = firebase.auth();
+
+// Initialize Firestore
 const db = firebase.firestore();
 
-
-// --- Firestore Offline Support Configuration ---
-// The following configuration is added to address the "Could not reach Cloud Firestore backend"
-// error and improve the application's resilience to network issues.
-
-try {
-  // Firestore settings must be applied before any other Firestore operations.
-  db.settings({
-    // experimentalForceLongPolling can help bypass issues with WebSockets,
-    // which is a potential cause for connectivity problems in some network environments.
-    experimentalForceLongPolling: true,
-    // Use unlimited cache size for offline data.
-    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+// Disabled Firestore persistence as it likely conflicts with auth persistence in sandboxed environments.
+/*
+db.enablePersistence({ synchronizeTabs: true })
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Firestore persistence initialization failed: Another tab might be open.', err);
+    } else if (err.code === 'unimplemented') {
+      console.warn('Firestore persistence is not supported in this browser.', err);
+    }
   });
-
-  // Enable offline persistence. This allows the app to function with cached data
-  // when the network is unavailable and synchronizes data when the connection is restored.
-  // 'synchronizeTabs: true' ensures data consistency across multiple browser tabs.
-  db.enablePersistence({ synchronizeTabs: true })
-    .catch((err) => {
-      if (err.code === 'failed-precondition') {
-        // This error can occur if the app is open in multiple tabs and persistence
-        // is being initialized in all of them. `synchronizeTabs` helps, but
-        // we log it for debugging.
-        console.warn('Firestore persistence initialization failed: Another tab might be open.', err);
-      } else if (err.code === 'unimplemented') {
-        // The browser does not support the features required for persistence.
-        console.warn('Firestore persistence is not supported in this browser.', err);
-      }
-    });
-} catch (error) {
-    console.error("Failed to apply Firestore offline settings:", error);
-}
-
+*/
 
 export { auth, db, app };
