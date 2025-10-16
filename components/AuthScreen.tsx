@@ -62,9 +62,12 @@ export default function AuthScreen({ onLogin, onSignUp, onLoginAsGuest }) {
             <LogoIcon className="h-20 w-20 text-indigo-500" />
         </div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
-            {isLogin ? 'התחברות ל-Midpoint Master' : 'הרשמה ל-Midpoint Master'}
+            {isLogin ? 'התחברות למרכז התרגול' : 'הרשמה למרכז התרגול'}
         </h1>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-8">
+        <p className="text-md text-center text-gray-500 dark:text-gray-400 mb-4">
+            כיתה י' 4 יח"ל - אלוני יצחק
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           {!isLogin && (
             <input
               type="text"

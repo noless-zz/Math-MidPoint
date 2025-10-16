@@ -34,7 +34,7 @@ export default function Dashboard({ user, onNavigate }) {
     <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">שלום, {user.username}!</h2>
-        <p className="text-lg text-gray-600 dark:text-gray-400 mt-1">מוכן להפוך לאשף בנקודות אמצע?</p>
+        <p className="text-lg text-gray-600 dark:text-gray-400 mt-1">מוכן להתחיל לתרגל?</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
