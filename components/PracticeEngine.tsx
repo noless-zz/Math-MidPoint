@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Modality } from '@google/genai';
 import { generateQuestion } from '../services/exerciseGenerator.ts';
 import { AnswerFormat as AF, QuestionType as QT, SUBJECTS, DIFFICULTY_LEVELS } from '../types.ts';
 import CoordinatePlane from './CoordinatePlane.tsx';
@@ -133,6 +133,7 @@ const PracticeSession = ({ config, updateUser, onExit }) => {
   const [attempts, setAttempts] = useState(0);
   const [pointsForQuestion, setPointsForQuestion] = useState(0);
   const [geminiExplanation, setGeminiExplanation] = useState('');
+  const [geminiImageUrl, setGeminiImageUrl] = useState('');
   const [isGeminiLoading, setIsGeminiLoading] = useState(false);
 
   const difficulty = useMemo(() => DIFFICULTY_LEVELS[config.difficulty], [config.difficulty]);
@@ -147,6 +148,7 @@ const PracticeSession = ({ config, updateUser, onExit }) => {
     setAttempts(0);
     setPointsForQuestion(10 * difficulty.multiplier);
     setGeminiExplanation('');
+    setGeminiImageUrl('');
     setIsGeminiLoading(false);
   }, [config, difficulty]);
 
@@ -198,32 +200,80 @@ const PracticeSession = ({ config, updateUser, onExit }) => {
     if (!question) return;
     setIsGeminiLoading(true);
     setGeminiExplanation('');
+    setGeminiImageUrl('');
     
     const questionText = question.type === QT.FindMidpoint
       ? `נתונות הנקודות A(${question.points.A.x}, ${question.points.A.y}) ו-B(${question.points.B.x}, ${question.points.B.y}). מהי נקודת האמצע M של הקטע AB?`
       : `נתונה הנקודה A(${question.points.A.x}, ${question.points.A.y}) ונקודת האמצע M(${question.points.M.x}, ${question.points.M.y}) של קטע. מצא את נקודת הקצה השנייה B.`;
 
     const prompt = `
-      Provide a detailed, step-by-step explanation in Hebrew on how to solve the following math problem.
-      The explanation must be in plain text only.
-      Do NOT use any markdown formatting (like **, *, #, etc.).
-      Do NOT use special characters like $, ', or " that are not essential for the mathematical operations.
-      Structure the explanation clearly with simple line breaks.
-      First, state the relevant formula. Then, show how to substitute the given numbers into the formula to arrive at the correct answer.
+      You are a helpful math tutor for 10th-grade students, speaking Hebrew.
+      Your task is to explain how to solve a given math problem about finding the midpoint or endpoint of a line segment on a 2D coordinate plane.
 
-      The question is:
-      ${questionText}
+      The user has failed to solve this problem:
+      Question: "${questionText}"
+      Correct Answer: "(${question.answer.x}, ${question.answer.y})"
 
-      The correct answer is:
-      (${question.answer.x}, ${question.answer.y})
+      Please provide your response as a JSON object with two fields: "explanation" and "imagePrompt".
+
+      1.  **explanation**: A step-by-step explanation in Hebrew on how to solve the problem.
+          - The explanation must be clean, simple, and mathematically precise, as if written by a teacher for a student.
+          - It must be in **plain text only**.
+          - Do **NOT** use any markdown (like **, *, #, _) or special formatting characters (like $, ', ").
+          - Use simple line breaks for readability. Avoid complex formatting.
+
+      2.  **imagePrompt**: A decision on whether a visual aid is needed.
+          - If a graph would help, create a detailed, descriptive prompt in ENGLISH for an AI image generator.
+          - When creating the prompt, act as an **expert mathematician and graphic designer**.
+          - The generated image must be **mathematically correct**. Ensure all points are plotted accurately on the Cartesian plane according to their coordinates.
+          - The formulas and calculations displayed on the image must be correct and directly correspond to the problem's numbers.
+          - If a graph is not necessary, return an empty string ("").
+
+      Example for a helpful 'imagePrompt':
+      "A clean, mathematically accurate 2D Cartesian coordinate plane. Plot and label point A at (${question.points.A.x}, ${question.points.A.y}) and point B at (${question.points.B?.x || 'X'}, ${question.points.B?.y || 'Y'}). Draw a dashed line between A and B. Plot and label the midpoint M at (${question.answer.x}, ${question.answer.y}). To the side of the graph, clearly write the correct formulas and calculations: M_x = (x_A + x_B)/2 = (${question.points.A.x} + ${question.points.B?.x || 'X'})/2 = ${question.answer.x} and M_y = (y_A + y_B)/2 = (${question.points.A.y} + ${question.points.B?.y || 'Y'})/2 = ${question.answer.y}. The entire image should be clear, easy to read, and mathematically precise."
     `;
     
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt
-      });
-      setGeminiExplanation(response.text);
+        const textResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: { responseMimeType: "application/json" },
+        });
+        
+        let result = null;
+        try {
+            // Attempt to handle cases where the model might return a non-JSON string with JSON embedded
+            const jsonStringMatch = textResponse.text.match(/\{[\s\S]*\}/);
+            if (jsonStringMatch) {
+                result = JSON.parse(jsonStringMatch[0]);
+            } else {
+                throw new Error("No JSON found in response");
+            }
+        } catch (parseError) {
+            console.warn("Failed to parse Gemini response as JSON. Treating as plain text.", parseError, "Response was:", textResponse.text);
+            setGeminiExplanation(textResponse.text);
+        }
+
+        if (result) {
+            setGeminiExplanation(result.explanation);
+            if (result.imagePrompt) {
+                console.log('Generating image with prompt:', result.imagePrompt);
+                const imageResponse = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: { parts: [{ text: result.imagePrompt }] },
+                    config: {
+                        responseModalities: [Modality.IMAGE],
+                    },
+                });
+
+                const imagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                if (imagePart?.inlineData) {
+                    const base64ImageBytes = imagePart.inlineData.data;
+                    const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                    setGeminiImageUrl(imageUrl);
+                }
+            }
+        }
     } catch (error) {
       console.error("Gemini API error:", error);
       setGeminiExplanation("מצטערים, חלה שגיאה בקבלת ההסבר. נסו לרענן או לבדוק את חיבור האינטרנט.");
@@ -396,9 +446,16 @@ const PracticeSession = ({ config, updateUser, onExit }) => {
             </div>
 
             {geminiExplanation && (
-              <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-right w-full whitespace-pre-wrap leading-relaxed">
+              <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-right w-full">
                 <h3 className="font-bold text-lg mb-2 text-gray-800 dark:text-gray-100">הסבר מ-Gemini:</h3>
-                <div className="text-gray-700 dark:text-gray-200">{geminiExplanation}</div>
+                {geminiImageUrl && (
+                  <div className="my-4 border dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
+                    <img src={geminiImageUrl} alt="Visual explanation of the math problem" className="w-full h-auto" />
+                  </div>
+                )}
+                <div className="whitespace-pre-wrap leading-relaxed text-gray-700 dark:text-gray-200">
+                    {geminiExplanation}
+                </div>
               </div>
             )}
           </div>
