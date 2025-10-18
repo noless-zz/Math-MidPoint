@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from '../types.ts';
 import { DashboardIcon, LearnIcon, PracticeIcon, LeaderboardIcon, LogoutIcon, LogoIcon } from './icons.tsx';
+import { design } from '../constants/design_system.ts';
 
 export default function Header({ user, onNavigate, onLogout, currentView }) {
   const navItems = [
@@ -11,7 +12,7 @@ export default function Header({ user, onNavigate, onLogout, currentView }) {
   ];
 
   return (
-    <header className="bg-indigo-600 dark:bg-gray-800 shadow-md">
+    <header className={design.header.background}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
@@ -24,11 +25,7 @@ export default function Header({ user, onNavigate, onLogout, currentView }) {
                 <button
                   key={item.view}
                   onClick={() => onNavigate(item.view)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    currentView === item.view
-                      ? 'bg-indigo-700 text-white'
-                      : 'text-gray-300 hover:bg-indigo-500 hover:text-white'
-                  }`}
+                  className={design.header.navButton(currentView, item.view)}
                   aria-current={currentView === item.view ? 'page' : undefined}
                 >
                   {item.label}
@@ -42,7 +39,7 @@ export default function Header({ user, onNavigate, onLogout, currentView }) {
             </div>
             <button
               onClick={onLogout}
-              className="flex items-center p-2 rounded-full text-gray-300 hover:bg-indigo-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-600 focus:ring-white"
+              className={`flex items-center p-2 rounded-full ${design.colors.text.onPrimaryMuted} hover:bg-${design.colors.primary.light} hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-600 focus:ring-white`}
               title="התנתקות"
             >
               <LogoutIcon className="h-6 w-6" />
@@ -52,17 +49,13 @@ export default function Header({ user, onNavigate, onLogout, currentView }) {
       </div>
       
       {/* Mobile Navigation */}
-      <nav className="md:hidden bg-indigo-700 dark:bg-gray-700 p-2">
+      <nav className={`md:hidden bg-indigo-700 dark:bg-gray-700 p-2`}>
         <div className="flex items-center justify-around">
           {navItems.map((item) => (
              <button
                 key={item.view}
                 onClick={() => onNavigate(item.view)}
-                className={`flex flex-col items-center justify-center p-2 rounded-md w-1/4 text-xs font-medium transition-colors ${
-                  currentView === item.view
-                    ? 'bg-indigo-800 text-white'
-                    : 'text-gray-300 hover:bg-indigo-500 hover:text-white'
-                }`}
+                className={design.header.mobileNavButton(currentView, item.view)}
                 aria-current={currentView === item.view ? 'page' : undefined}
               >
                 <item.icon className="h-5 w-5 mb-1" />

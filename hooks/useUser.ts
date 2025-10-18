@@ -141,18 +141,29 @@ export function useUser() {
       await auth.signInWithEmailAndPassword(email, password);
       console.log('[Sign In] signInWithEmailAndPassword successful. Waiting for onAuthStateChanged...');
     } catch (error) {
-      // If user is not found, try to create a new account with the same credentials
-      if (error.code === 'auth/user-not-found') {
-        console.warn(`[Sign In] User ${email} not found. Attempting to create a new account.`);
+      // This generic error can mean user not found OR wrong password.
+      // We attempt to sign up as a fallback.
+      if (error.code === 'auth/invalid-credential') {
+        console.warn(`[Sign In] Invalid credential for ${email}. Attempting to create a new account as a fallback.`);
         try {
+          // Try to create an account.
           await auth.createUserWithEmailAndPassword(email, password);
           console.log('[Sign Up] createUserWithEmailAndPassword successful after failed login. Waiting for onAuthStateChanged...');
         } catch (signUpError) {
-           console.error("[Sign Up] Failed to create new user. Code:", signUpError.code, "Message:", signUpError.message);
-           setAuthError(signUpError); // Show the sign-up error (e.g., weak password)
+           // If sign-up fails because the email already exists, it means the original error was a wrong password.
+           // In this case, we should show the original 'invalid-credential' error to the user.
+           if (signUpError.code === 'auth/email-already-in-use') {
+              console.log("[Sign In] Fallback logic: User exists, so the original password was incorrect. Displaying 'invalid credential' message.");
+              setAuthError(error); // Set the original 'invalid-credential' error
+           } else {
+              // Otherwise, it's a genuine sign-up error (like a weak password), which is useful to show.
+              console.error("[Sign Up] Failed to create new user during fallback. Code:", signUpError.code, "Message:", signUpError.message);
+              setAuthError(signUpError);
+           }
            setLoading(false);
         }
       } else {
+        // Handle other, unexpected sign-in errors
         console.error("[Sign In] Email sign-in failed. Code:", error.code, "Message:", error.message);
         setAuthError(error);
         setLoading(false);

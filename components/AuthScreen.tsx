@@ -1,7 +1,6 @@
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { LogoIcon } from './icons.tsx';
+import { design } from '../constants/design_system.ts';
 
 // A simple Google Icon component
 const GoogleIcon = (props) => (
@@ -37,6 +36,8 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
     const getErrorMessage = (error) => {
       if (!error) return null;
       switch (error.code) {
+        case 'auth/invalid-credential':
+          return 'האימייל או הסיסמה שהזנת אינם נכונים.';
         case 'auth/operation-not-supported-in-this-environment':
           return 'ההתחברות באמצעות גוגל אינה נתמכת בסביבת הרצה זו.';
         case 'auth/unauthorized-domain':
@@ -47,10 +48,6 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
           return 'בוצעה בקשת התחברות נוספת לפני שהנוכחית הושלמה.';
         case 'auth/invalid-email':
           return 'כתובת האימייל אינה תקינה.';
-        case 'auth/user-not-found':
-          return 'לא נמצא משתמש עם כתובת אימייל זו.';
-        case 'auth/wrong-password':
-          return 'הסיסמה שגויה. נסה/י שוב.';
         case 'auth/email-already-in-use':
           return 'כתובת האימייל כבר קיימת במערכת.';
         case 'auth/weak-password':
@@ -66,7 +63,7 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
     
     if (errorMessage) {
        return (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+        <div className={design.auth.errorBox} role="alert">
           <strong className="font-bold">שגיאה: </strong>
           <span className="block sm:inline">{errorMessage}</span>
         </div>
@@ -77,12 +74,12 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
   };
     
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+    <div className={`min-h-screen flex flex-col items-center justify-center bg-${design.colors.background.light} dark:bg-${design.colors.background.dark} p-4`}>
+      <div className={design.auth.card}>
         <div className="text-center">
             <LogoIcon className="h-16 w-16 text-indigo-500 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ברוכים הבאים</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2 mb-8">
+            <h1 className={`text-3xl font-bold ${design.colors.text.light} dark:${design.colors.text.dark}`}>ברוכים הבאים</h1>
+            <p className={`${design.colors.text.muted.light} dark:${design.colors.text.muted.dark} mt-2 mb-8`}>
               {mode === 'signIn' ? 'התחבר/י לחשבונך' : 'צור/י חשבון חדש'}
             </p>
         </div>
@@ -91,7 +88,7 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
 
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-right">
+                <label htmlFor="email" className={`block text-sm font-medium text-gray-700 dark:text-gray-300 text-right`}>
                     אימייל
                 </label>
                 <input
@@ -102,12 +99,12 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className={`mt-1 ${design.components.input.base}`}
                 />
             </div>
 
             <div>
-                <label htmlFor="password"  className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-right">
+                <label htmlFor="password"  className={`block text-sm font-medium text-gray-700 dark:text-gray-300 text-right`}>
                     סיסמה
                 </label>
                 <input
@@ -118,13 +115,13 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className={`mt-1 ${design.components.input.base}`}
                 />
             </div>
             
              <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className={`w-full flex justify-center text-sm ${design.components.button.base} ${design.components.button.primary}`}
             >
               {mode === 'signIn' ? 'התחברות' : 'הרשמה'}
             </button>
@@ -142,7 +139,7 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
                     <div className="w-full border-t border-gray-300 dark:border-gray-600" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">או</span>
+                    <span className={`px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400`}>או</span>
                 </div>
             </div>
             <div className="mt-6 grid grid-cols-1 gap-3">

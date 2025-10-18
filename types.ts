@@ -1,59 +1,59 @@
-/**
- * @typedef {Object} Point
- * @property {number} x
- * @property {number} y
- */
+import { GoogleGenAI } from "@google/genai";
 
-/**
- * @typedef {Object} User
- * @property {string} uid
- * @property {string | null} email
- * @property {string} username
- * @property {number} score
- * @property {number} completedExercises
- * @property {boolean} [isGuest]
- * @property {boolean} [emailVerified]
- */
+export enum View {
+  Dashboard = 'Dashboard',
+  Learn = 'Learn',
+  Practice = 'Practice',
+  Leaderboard = 'Leaderboard',
+}
 
-export const QuestionType = {
-  FindMidpoint: 'FIND_MIDPOINT',
-  FindEndpoint: 'FIND_ENDPOINT',
-};
+export interface Subject {
+  id: string;
+  name: string;
+  enabled: boolean;
+  practice: boolean;
+}
 
-export const AnswerFormat = {
-  MultipleChoice: 'MULTIPLE_CHOICE',
-  Graphical: 'GRAPHICAL',
-  TextInput: 'TEXT_INPUT',
-};
-
-export const SUBJECTS = {
-  MIDPOINT: { id: 'MIDPOINT', name: 'אמצע קטע', enabled: true },
-  DISTANCE: { id: 'DISTANCE', name: 'מרחק בין שתי נקודות', enabled: false },
-  LINE_EQUATION: { id: 'LINE_EQUATION', name: 'משוואת הקו הישר', enabled: false },
-  INTERSECTION: { id: 'INTERSECTION', name: 'נקודות חיתוך', enabled: false },
-  PARALLEL_PERPENDICULAR: { id: 'PARALLEL_PERPENDICULAR', name: 'ישרים מקבילים ומאונכים', enabled: false },
-  TRIANGLE_PROPERTIES: { id: 'TRIANGLE_PROPERTIES', name: 'תכונות משולש (תיכון, גובה וכו\')', enabled: false },
-};
-
-export const DIFFICULTY_LEVELS = {
-  EASY: { id: 'EASY', name: 'קל', multiplier: 1 },
-  MEDIUM: { id: 'MEDIUM', name: 'בינוני', multiplier: 1.5 },
-  HARD: { id: 'HARD', name: 'קשה', multiplier: 2 },
+export const SUBJECTS: Record<string, Subject> = {
+  COORDINATE_SYSTEM: { id: 'coordinate_system', name: 'מערכת צירים', enabled: true, practice: true },
+  STRAIGHT_LINE: { id: 'straight_line', name: 'הקו הישר', enabled: true, practice: false },
+  LINE_INTERSECTION: { id: 'line_intersection', name: 'חיתוך בין ישרים', enabled: true, practice: false },
+  PERPENDICULAR_LINES: { id: 'perpendicular_lines', name: 'ישרים מאונכים', enabled: true, practice: false },
+  DISTANCE: { id: 'distance', name: 'מרחק בין נקודות', enabled: true, practice: false },
+  MIDPOINT: { id: 'midpoint', name: 'אמצע קטע', enabled: true, practice: true },
+  TRIANGLE_PROPERTIES: { id: 'triangle_properties', name: 'תכונות משולש', enabled: true, practice: false },
+  AREA_CALC: { id: 'area_calc', name: 'חישוב שטח משולש', enabled: true, practice: true },
 };
 
 
-/**
- * @typedef {Object} Question
- * @property {QuestionType} type
- * @property {{ A: Point; B?: Point; M?: Point; }} points
- * @property {Point} answer
- * @property {AnswerFormat} answerFormat
- * @property {Point[]} [options]
- */
+export interface Difficulty {
+    id: 'easy' | 'medium' | 'hard';
+    name: string;
+    multiplier: number;
+}
 
-export const View = {
-    Dashboard: 'DASHBOARD',
-    Learn: 'LEARN',
-    Practice: 'PRACTICE',
-    Leaderboard: 'LEADERBOARD'
+export const DIFFICULTY_LEVELS: Record<string, Difficulty> = {
+    EASY: { id: 'easy', name: 'קל', multiplier: 1 },
+    MEDIUM: { id: 'medium', name: 'בינוני', multiplier: 1.5 },
+    HARD: { id: 'hard', name: 'קשה', multiplier: 2 },
 };
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export type QuestionType = 'FIND_MIDPOINT' | 'FIND_ENDPOINT' | 'CALCULATE_AREA' | 'FIND_MIDPOINT_VISUAL' | 'FIND_MIDPOINT_MCQ' | 'FIND_ENDPOINT_MCQ' | 'IDENTIFY_COORDINATES';
+
+export interface Question {
+  type: QuestionType;
+  question: string;
+  points: { A: Point; B?: Point; C?: Point; M?: Point };
+  solution: Point | number;
+  explanation: string;
+  difficulty: Difficulty['id'];
+  options?: Point[];
+}
+
+// This type can be expanded to include other AI models if needed
+export type AiInstance = GoogleGenAI;

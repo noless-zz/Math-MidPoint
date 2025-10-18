@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase/config.ts';
 import { CrownIcon, StarIcon } from './icons.tsx';
+import { design } from '../constants/design_system.ts';
 
 const USER_COLLECTION = 'midpointMasterUsers';
 
-// Fix: Add explicit prop types for the component to resolve issues with the 'key' prop.
 interface LeaderboardRowProps {
     user: {
         username: string;
@@ -16,14 +16,14 @@ interface LeaderboardRowProps {
 
 const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, rank, isCurrentUser }) => {
     const rankColor = (r: number) => {
-        if (r === 1) return 'text-yellow-400';
-        if (r === 2) return 'text-gray-400';
-        if (r === 3) return 'text-orange-400';
+        if (r === 1) return `text-${design.colors.accent.yellow}`;
+        if (r === 2) return `text-gray-400`;
+        if (r === 3) return `text-${design.colors.accent.orange}`;
         return 'text-gray-500 dark:text-gray-400';
     };
 
     return (
-        <div className={`flex items-center p-4 rounded-lg transition-colors ${isCurrentUser ? 'bg-indigo-100 dark:bg-indigo-900/50 border-2 border-indigo-500' : 'bg-white dark:bg-gray-800'}`}>
+        <div className={design.leaderboard.row(isCurrentUser)}>
             <div className="flex items-center w-16">
                 <span className={`text-lg font-bold w-8 text-center ${rankColor(rank)}`}>
                     {rank}
@@ -32,11 +32,11 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, rank, isCurrentUs
             </div>
             <div className="flex-grow font-semibold text-gray-800 dark:text-gray-100">
                 {user.username}
-                {isCurrentUser && <span className="text-sm font-normal text-indigo-600 dark:text-indigo-400"> (את/ה)</span>}
+                {isCurrentUser && <span className={`text-sm font-normal text-${design.colors.primary.DEFAULT} dark:text-indigo-400`}> (את/ה)</span>}
             </div>
-            <div className="flex items-center gap-2 text-lg font-bold text-indigo-500">
+            <div className={`flex items-center gap-2 text-lg font-bold text-${design.colors.primary.light}`}>
                 <span>{user.score}</span>
-                <StarIcon className="h-5 w-5 text-yellow-500" />
+                <StarIcon className={`h-5 w-5 text-${design.colors.accent.yellow}`} />
             </div>
         </div>
     );
@@ -81,9 +81,9 @@ export default function Leaderboard({ currentUser }) {
     
     if (currentUser.isGuest) {
         return (
-            <div className="text-center bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg max-w-2xl mx-auto">
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">לוח המובילים</h2>
-                <p className="text-lg text-gray-600 dark:text-gray-400">
+            <div className={`text-center ${design.layout.card} ${design.layout.leaderboard}`}>
+                <h2 className={`${design.typography.sectionTitle} mb-4`}>לוח המובילים</h2>
+                <p className={`text-lg ${design.colors.text.muted.light} dark:${design.colors.text.muted.dark}`}>
                     תכונה זו זמינה רק למשתמשים רשומים. <br/>
                     התחבר עם חשבון גוגל כדי לראות את הדירוג ולהתחרות!
                 </p>
@@ -101,15 +101,15 @@ export default function Leaderboard({ currentUser }) {
 
     if (error) {
         return (
-            <div className="text-center p-10 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg">
+            <div className={`text-center p-10 ${design.colors.feedback.error.bg} ${design.colors.feedback.error.text} rounded-lg`}>
                 <p className="text-xl font-semibold">{error}</p>
             </div>
         );
     }
 
     return (
-        <div className="max-w-2xl mx-auto">
-            <h2 className="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">לוח המובילים</h2>
+        <div className={design.layout.leaderboard}>
+            <h2 className={`${design.typography.pageTitle}`}>לוח המובילים</h2>
             
             <div className="space-y-3">
                 {users.map((user, index) => (
