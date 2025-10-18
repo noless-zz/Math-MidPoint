@@ -105,6 +105,7 @@ function generateMidpointQuestion(difficulty: Difficulty['id']): Question {
         if (rand < 0.75) return generateMidpointTextQuestion(difficulty, true);
         return generateMidpointTextQuestion(difficulty, false);
     }
+    // Hard
     if (rand < 0.3) return generateMidpointTextQuestion(difficulty, true);
     return generateMidpointTextQuestion(difficulty, false);
 }
