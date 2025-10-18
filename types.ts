@@ -16,13 +16,13 @@ export interface Subject {
 
 export const SUBJECTS: Record<string, Subject> = {
   COORDINATE_SYSTEM: { id: 'coordinate_system', name: 'מערכת צירים', enabled: true, practice: true },
-  STRAIGHT_LINE: { id: 'straight_line', name: 'הקו הישר', enabled: true, practice: false },
-  LINE_INTERSECTION: { id: 'line_intersection', name: 'חיתוך בין ישרים', enabled: true, practice: false },
-  PERPENDICULAR_LINES: { id: 'perpendicular_lines', name: 'ישרים מאונכים', enabled: true, practice: false },
-  DISTANCE: { id: 'distance', name: 'מרחק בין נקודות', enabled: true, practice: false },
+  STRAIGHT_LINE: { id: 'straight_line', name: 'הקו הישר', enabled: true, practice: true },
+  LINE_INTERSECTION: { id: 'line_intersection', name: 'חיתוך בין ישרים', enabled: true, practice: true },
+  PERPENDICULAR_LINES: { id: 'perpendicular_lines', name: 'ישרים מאונכים', enabled: true, practice: true },
+  DISTANCE: { id: 'distance', name: 'מרחק בין נקודות', enabled: true, practice: true },
   MIDPOINT: { id: 'midpoint', name: 'אמצע קטע', enabled: true, practice: true },
   TRIANGLE_PROPERTIES: { id: 'triangle_properties', name: 'תכונות משולש', enabled: true, practice: false },
-  AREA_CALC: { id: 'area_calc', name: 'חישוב שטח משולש', enabled: true, practice: true },
+  AREA_CALC: { id: 'area_calc', name: 'חישוב שטח משולש', enabled: true, practice: false },
 };
 
 
@@ -43,16 +43,29 @@ export interface Point {
   y: number;
 }
 
-export type QuestionType = 'FIND_MIDPOINT' | 'FIND_ENDPOINT' | 'CALCULATE_AREA' | 'FIND_MIDPOINT_VISUAL' | 'FIND_MIDPOINT_MCQ' | 'FIND_ENDPOINT_MCQ' | 'IDENTIFY_COORDINATES';
+export type QuestionType = 
+  'FIND_MIDPOINT' | 'FIND_ENDPOINT' | 
+  'FIND_MIDPOINT_VISUAL' | 'FIND_MIDPOINT_MCQ' | 
+  'FIND_ENDPOINT_MCQ' | 'IDENTIFY_COORDINATES' |
+  'CALCULATE_AREA' | 'CALCULATE_SLOPE' | 
+  'CALCULATE_DISTANCE' | 'FIND_PERPENDICULAR_SLOPE' |
+  'FIND_INTERSECTION_POINT';
+
+export interface LineEquation {
+    m: number;
+    b: number;
+    text: string;
+}
 
 export interface Question {
   type: QuestionType;
   question: string;
-  points: { A: Point; B?: Point; C?: Point; M?: Point };
+  points?: { A?: Point; B?: Point; C?: Point; M?: Point };
+  lines?: LineEquation[];
   solution: Point | number;
   explanation: string;
   difficulty: Difficulty['id'];
-  options?: Point[];
+  options?: (Point | number)[];
 }
 
 // This type can be expanded to include other AI models if needed
