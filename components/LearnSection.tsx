@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { SUBJECTS } from '../types.ts';
 
-const Fraction = ({ numerator, denominator }) => (
+// Fix: Add explicit prop types for Fraction component
+const Fraction = ({ numerator, denominator }: { numerator: React.ReactNode, denominator: React.ReactNode }) => (
     <div className="inline-flex flex-col items-center align-middle">
         <span className="px-2">{numerator}</span>
         <hr className="w-full border-t-2 border-gray-700 dark:border-gray-200 my-1" />
@@ -8,14 +10,25 @@ const Fraction = ({ numerator, denominator }) => (
     </div>
 );
 
-const MathDisplay = ({ variable, children }) => (
+// Fix: Add explicit prop types for MathDisplay component, making children optional to fix reported errors.
+interface MathDisplayProps {
+    variable: string;
+    children?: React.ReactNode;
+}
+const MathDisplay: React.FC<MathDisplayProps> = ({ variable, children }) => (
      <div className="flex items-center justify-center gap-2 text-xl md:text-2xl font-medium text-gray-800 dark:text-gray-100">
         <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
         {children}
     </div>
 );
 
-const FormulaBox = ({ title, children, explanation }) => (
+// Fix: Add explicit prop types for FormulaBox component, making children optional to fix reported errors.
+interface FormulaBoxProps {
+    title: string;
+    explanation: string;
+    children?: React.ReactNode;
+}
+const FormulaBox: React.FC<FormulaBoxProps> = ({ title, children, explanation }) => (
     <div className="bg-indigo-50 dark:bg-indigo-900/50 border-r-4 border-indigo-500 p-6 rounded-lg">
         <h3 className="text-xl font-semibold text-indigo-800 dark:text-indigo-200">{title}</h3>
         <div dir="ltr" className="my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center shadow-inner min-h-[80px] flex items-center justify-center">
@@ -31,8 +44,7 @@ const GRID_RANGE = 10;
 const PADDING = 15;
 const CONTENT_SIZE = VIEWBOX_SIZE - 2 * PADDING;
 
-// Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
-export default function LearnSection() {
+const MidpointLearnContent = () => {
   const [pointA, setPointA] = useState({ x: -6, y: -5 });
   const [pointB, setPointB] = useState({ x: 4, y: 7 });
   const [draggedPoint, setDraggedPoint] = useState(null);
@@ -336,6 +348,63 @@ export default function LearnSection() {
             </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+// Fix: Replaced JSX.Element with React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
+export default function LearnSection() {
+  const [selectedSubject, setSelectedSubject] = useState(null);
+
+  if (!selectedSubject) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">מרכז למידה</h2>
+        <p className="text-lg text-gray-600 dark:text-gray-300 text-center mb-10">
+          בחר/י נושא כדי להתחיל ללמוד.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Object.values(SUBJECTS).map(subject => (
+            <div
+              key={subject.id}
+              onClick={() => subject.enabled && setSelectedSubject(subject)}
+              className={`p-6 rounded-lg shadow-md text-center transition-all transform ${
+                subject.enabled
+                  ? 'bg-white dark:bg-gray-800 cursor-pointer hover:scale-105 hover:shadow-xl'
+                  : 'bg-gray-200 dark:bg-gray-700 opacity-60 cursor-not-allowed'
+              }`}
+            >
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{subject.name}</h3>
+              {!subject.enabled && (
+                <span className="mt-2 inline-block bg-yellow-400 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  בקרוב!
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button 
+        onClick={() => setSelectedSubject(null)}
+        className="mb-6 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 font-bold py-2 px-4 rounded-lg inline-flex items-center"
+      >
+        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        חזרה לבחירת נושא
+      </button>
+      {selectedSubject.id === SUBJECTS.MIDPOINT.id ? (
+        <MidpointLearnContent />
+      ) : (
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg text-center">
+            <h2 className="text-3xl font-bold mb-4">{selectedSubject.name}</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300">התוכן עבור נושא זה יתווסף בקרוב!</p>
+        </div>
+      )}
     </div>
   );
 }

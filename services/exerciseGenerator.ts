@@ -1,21 +1,19 @@
 import { QuestionType, AnswerFormat } from '../types.ts';
-import { QuestionType as QT, AnswerFormat as AF } from '../types.ts';
-
-const GRID_RANGE = 10;
+import { QuestionType as QT, AnswerFormat as AF, DIFFICULTY_LEVELS } from '../types.ts';
 
 const getRandomInt = (min, max) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
-const getRandomPoint = () => {
+const getRandomPoint = (gridRange) => {
   return {
-    x: getRandomInt(-GRID_RANGE, GRID_RANGE),
-    y: getRandomInt(-GRID_RANGE, GRID_RANGE),
+    x: getRandomInt(-gridRange, gridRange),
+    y: getRandomInt(-gridRange, gridRange),
   };
 };
 
-const isPointInRange = (p) => 
-    Math.abs(p.x) <= GRID_RANGE && Math.abs(p.y) <= GRID_RANGE;
+const isPointInRange = (p, gridRange) => 
+    Math.abs(p.x) <= gridRange && Math.abs(p.y) <= gridRange;
 
 
 const shuffleArray = (array) => {
@@ -26,8 +24,29 @@ const shuffleArray = (array) => {
   return array;
 };
 
-export function generateQuestion() {
-  const questionType = Math.random() < 0.7 ? QT.FindMidpoint : QT.FindEndpoint;
+export function generateQuestion({ subjects, difficulty }) {
+  // For now, only Midpoint questions are implemented.
+  
+  let gridRange;
+  let findEndpointChance;
+
+  switch (difficulty.id) {
+    case DIFFICULTY_LEVELS.EASY.id:
+      gridRange = 5;
+      findEndpointChance = 0.2; // Mostly find midpoint
+      break;
+    case DIFFICULTY_LEVELS.HARD.id:
+      gridRange = 20;
+      findEndpointChance = 0.6; // More find endpoint
+      break;
+    case DIFFICULTY_LEVELS.MEDIUM.id:
+    default:
+      gridRange = 10;
+      findEndpointChance = 0.4;
+      break;
+  }
+
+  const questionType = Math.random() < findEndpointChance ? QT.FindEndpoint : QT.FindMidpoint;
   const answerFormat = [AF.MultipleChoice, AF.Graphical, AF.TextInput][getRandomInt(0,2)];
 
   let A, B, M;
@@ -39,10 +58,10 @@ export function generateQuestion() {
     B = {x:0, y:0}; // Initial dummy value
 
     while(!isValid) {
-        A = getRandomPoint();
-        B = getRandomPoint();
-        // Ensure midpoint has integer coordinates
-        if ((A.x + B.x) % 2 === 0 && (A.y + B.y) % 2 === 0) {
+        A = getRandomPoint(gridRange);
+        B = getRandomPoint(gridRange);
+        // Ensure midpoint has integer coordinates and points are not identical
+        if ((A.x + B.x) % 2 === 0 && (A.y + B.y) % 2 === 0 && (A.x !== B.x || A.y !== B.y)) {
             isValid = true;
         }
     }
@@ -66,13 +85,13 @@ export function generateQuestion() {
     M = {x:0, y:0}; // Initial dummy value
 
     while(!isValid) {
-        A = getRandomPoint();
-        M = getRandomPoint();
+        A = getRandomPoint(gridRange);
+        M = getRandomPoint(gridRange);
         B = {
           x: 2 * M.x - A.x,
           y: 2 * M.y - A.y,
         };
-        if (isPointInRange(B)) {
+        if (isPointInRange(B, gridRange) && (A.x !== M.x || A.y !== M.y)) {
             isValid = true;
         }
     }

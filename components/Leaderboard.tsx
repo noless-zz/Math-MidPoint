@@ -4,8 +4,18 @@ import { CrownIcon, StarIcon } from './icons.tsx';
 
 const USER_COLLECTION = 'midpointMasterUsers';
 
-const LeaderboardRow = ({ user, rank, isCurrentUser }) => {
-    const rankColor = (r) => {
+// Fix: Add explicit prop types for the component to resolve issues with the 'key' prop.
+interface LeaderboardRowProps {
+    user: {
+        username: string;
+        score: number;
+    };
+    rank: number;
+    isCurrentUser: boolean;
+}
+
+const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, rank, isCurrentUser }) => {
+    const rankColor = (r: number) => {
         if (r === 1) return 'text-yellow-400';
         if (r === 2) return 'text-gray-400';
         if (r === 3) return 'text-orange-400';

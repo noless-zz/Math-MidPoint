@@ -16,7 +16,13 @@ export default function App() {
 
   React.useEffect(() => {
     if (authError) {
-      console.error("An authentication error was caught by the App component:", authError);
+      if (authError.code === 'auth/operation-not-supported-in-this-environment') {
+        console.warn(
+          "[Auth Flow] Google Sign-In is not supported in this environment. This is an expected condition, not a critical error. Other login methods remain available."
+        );
+      } else {
+        console.error("An authentication error was caught by the App component:", authError);
+      }
     }
   }, [authError]);
 

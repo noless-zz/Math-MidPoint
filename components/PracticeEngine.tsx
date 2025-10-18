@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { GoogleGenAI } from '@google/genai';
 import { generateQuestion } from '../services/exerciseGenerator.ts';
-import { AnswerFormat as AF, QuestionType as QT } from '../types.ts';
+import { AnswerFormat as AF, QuestionType as QT, SUBJECTS, DIFFICULTY_LEVELS } from '../types.ts';
 import CoordinatePlane from './CoordinatePlane.tsx';
+
+// --- AI Service ---
+const API_KEY = process.env.API_KEY;
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // --- Helper Functions and Components ---
 
@@ -116,24 +121,34 @@ const FormulaDisplay = ({ question }) => {
     );
 };
 
-// --- Main Component ---
+const MAX_ATTEMPTS = 3;
 
-export default function PracticeEngine({ updateUser }) {
+// --- Practice Session Component ---
+const PracticeSession = ({ config, updateUser, onExit }) => {
   const [question, setQuestion] = useState(null);
-  const [userAnswerPoint, setUserAnswerPoint] = useState(null); // For all formats
-  const [userAnswerX, setUserAnswerX] = useState(''); // For Text Input X
-  const [userAnswerY, setUserAnswerY] = useState(''); // For Text Input Y
-  const [answerState, setAnswerState] = useState('initial');
-  const [showFeedback, setShowFeedback] = useState(false);
-  
+  const [userAnswerPoint, setUserAnswerPoint] = useState(null);
+  const [userAnswerX, setUserAnswerX] = useState('');
+  const [userAnswerY, setUserAnswerY] = useState('');
+  const [answerState, setAnswerState] = useState('initial'); // initial, correct, incorrect_try, incorrect_final
+  const [attempts, setAttempts] = useState(0);
+  const [pointsForQuestion, setPointsForQuestion] = useState(0);
+  const [geminiExplanation, setGeminiExplanation] = useState('');
+  const [isGeminiLoading, setIsGeminiLoading] = useState(false);
+
+  const difficulty = useMemo(() => DIFFICULTY_LEVELS[config.difficulty], [config.difficulty]);
+
   const loadNewQuestion = useCallback(() => {
-    setQuestion(generateQuestion());
+    const newQuestion = generateQuestion({ subjects: config.subjects, difficulty });
+    setQuestion(newQuestion);
     setUserAnswerPoint(null);
     setUserAnswerX('');
     setUserAnswerY('');
     setAnswerState('initial');
-    setShowFeedback(false);
-  }, []);
+    setAttempts(0);
+    setPointsForQuestion(10 * difficulty.multiplier);
+    setGeminiExplanation('');
+    setIsGeminiLoading(false);
+  }, [config, difficulty]);
 
   useEffect(() => {
     loadNewQuestion();
@@ -146,11 +161,7 @@ export default function PracticeEngine({ updateUser }) {
     if (question.answerFormat === AF.TextInput) {
         const x = parseFloat(userAnswerX);
         const y = parseFloat(userAnswerY);
-        if (!isNaN(x) && !isNaN(y)) {
-           finalAnswerPoint = { x, y };
-        } else {
-           finalAnswerPoint = null; // Invalid input
-        }
+        finalAnswerPoint = (!isNaN(x) && !isNaN(y)) ? { x, y } : null;
     }
     
     setUserAnswerPoint(finalAnswerPoint);
@@ -159,10 +170,70 @@ export default function PracticeEngine({ updateUser }) {
                       finalAnswerPoint.x === question.answer.x && 
                       finalAnswerPoint.y === question.answer.y;
     
-    setAnswerState(isCorrect ? 'correct' : 'incorrect');
-    setShowFeedback(true);
-    updateUser(isCorrect ? 10 : 0, 1);
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+    
+    if (isCorrect) {
+      setAnswerState('correct');
+      updateUser(pointsForQuestion, 1);
+    } else {
+      let newPoints = pointsForQuestion;
+      if (difficulty.id === DIFFICULTY_LEVELS.MEDIUM.id && newAttempts === 1) {
+          newPoints = 10 * DIFFICULTY_LEVELS.EASY.multiplier;
+      } else if (difficulty.id === DIFFICULTY_LEVELS.HARD.id) {
+          newPoints = Math.max(0, pointsForQuestion - 5);
+      }
+      setPointsForQuestion(newPoints);
+      
+      if (newAttempts < MAX_ATTEMPTS) {
+        setAnswerState('incorrect_try');
+      } else {
+        setAnswerState('incorrect_final');
+        updateUser(0, 1);
+      }
+    }
   };
+
+  const handleGeminiExplain = async () => {
+    if (!question) return;
+    setIsGeminiLoading(true);
+    setGeminiExplanation('');
+    
+    const questionText = question.type === QT.FindMidpoint
+      ? `נתונות הנקודות A(${question.points.A.x}, ${question.points.A.y}) ו-B(${question.points.B.x}, ${question.points.B.y}). מהי נקודת האמצע M של הקטע AB?`
+      : `נתונה הנקודה A(${question.points.A.x}, ${question.points.A.y}) ונקודת האמצע M(${question.points.M.x}, ${question.points.M.y}) של קטע. מצא את נקודת הקצה השנייה B.`;
+
+    const prompt = `
+      Provide a detailed, step-by-step explanation in Hebrew on how to solve the following math problem.
+      The explanation must be in plain text only.
+      Do NOT use any markdown formatting (like **, *, #, etc.).
+      Do NOT use special characters like $, ', or " that are not essential for the mathematical operations.
+      Structure the explanation clearly with simple line breaks.
+      First, state the relevant formula. Then, show how to substitute the given numbers into the formula to arrive at the correct answer.
+
+      The question is:
+      ${questionText}
+
+      The correct answer is:
+      (${question.answer.x}, ${question.answer.y})
+    `;
+    
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+      });
+      setGeminiExplanation(response.text);
+    } catch (error) {
+      console.error("Gemini API error:", error);
+      setGeminiExplanation("מצטערים, חלה שגיאה בקבלת ההסבר. נסו לרענן או לבדוק את חיבור האינטרנט.");
+    } finally {
+      setIsGeminiLoading(false);
+    }
+  };
+
+  const showHint = (difficulty.id === 'EASY') || (difficulty.id === 'MEDIUM' && attempts > 0);
+  const isInputDisabled = answerState === 'correct' || answerState === 'incorrect_final';
   
   const renderAnswerInput = () => {
     if (!question) return null;
@@ -177,11 +248,12 @@ export default function PracticeEngine({ updateUser }) {
                         <button 
                             key={i} 
                             onClick={() => setUserAnswerPoint(opt)}
-                            disabled={showFeedback}
+                            disabled={isInputDisabled}
                             className={`p-4 rounded-lg text-xl transition-all duration-200 border-2
-                                ${isSelectedAnswer(opt) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-indigo-500'}
-                                ${showFeedback && isCorrectAnswer(opt) ? '!bg-green-500 !border-green-500 text-white' : ''}
-                                ${showFeedback && isSelectedAnswer(opt) && !isCorrectAnswer(opt) ? '!bg-red-500 !border-red-500 text-white' : ''}
+                                ${isSelectedAnswer(opt) && answerState !== 'incorrect_final' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-indigo-500'}
+                                ${answerState === 'incorrect_final' && isCorrectAnswer(opt) ? '!bg-green-500 !border-green-500 text-white' : ''}
+                                ${answerState === 'incorrect_final' && isSelectedAnswer(opt) && !isCorrectAnswer(opt) ? '!bg-red-500 !border-red-500 text-white' : ''}
+                                ${answerState === 'correct' && isSelectedAnswer(opt) ? '!bg-green-500 !border-green-500 text-white' : ''}
                             `}
                         >
                             <span className="inline-flex items-center gap-1" dir="ltr">
@@ -194,21 +266,11 @@ export default function PracticeEngine({ updateUser }) {
                 </div>
             );
         case AF.TextInput: {
-            const { type, points } = question;
-            const { A, B, M } = points;
              return (
                  <div className="flex flex-col md:flex-row justify-center items-start gap-8 mt-6">
                     {/* Y Coordinate Input */}
                     <div className={`p-4 rounded-lg border-2 w-full md:w-auto flex flex-col items-center ${coordColors.Y.border} ${coordColors.Y.bg}`}>
-                        <h3 className={`font-bold text-lg mb-2 ${coordColors.Y.text}`}>חישוב שיעור Y</h3>
-                        <div className="h-16 flex items-center justify-center">
-                            {type === QT.FindMidpoint && B && (
-                                <FractionFormula variable="Ym" num1={A.y} num2={B.y} color1={pointColors.A} color2={pointColors.B} />
-                            )}
-                            {type === QT.FindEndpoint && M && (
-                                <EndpointFormula variable="Yb" numM={M.y} numA={A.y} colorM={pointColors.M} colorA={pointColors.A} />
-                            )}
-                        </div>
+                         <h3 className={`font-bold text-lg mb-2 ${coordColors.Y.text}`}>שיעור Y</h3>
                         <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
                             <label htmlFor="y-input" className={`font-bold text-xl ${coordColors.Y.text}`}>Y =</label>
                             <input
@@ -216,7 +278,7 @@ export default function PracticeEngine({ updateUser }) {
                                 type="number"
                                 value={userAnswerY}
                                 onChange={(e) => setUserAnswerY(e.target.value)}
-                                disabled={showFeedback}
+                                disabled={isInputDisabled}
                                 className={`w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 transition ${coordColors.Y.focus}`}
                                 aria-label="Coordinate Y"
                             />
@@ -225,15 +287,7 @@ export default function PracticeEngine({ updateUser }) {
 
                     {/* X Coordinate Input */}
                     <div className={`p-4 rounded-lg border-2 w-full md:w-auto flex flex-col items-center ${coordColors.X.border} ${coordColors.X.bg}`}>
-                        <h3 className={`font-bold text-lg mb-2 ${coordColors.X.text}`}>חישוב שיעור X</h3>
-                        <div className="h-16 flex items-center justify-center">
-                            {type === QT.FindMidpoint && B && (
-                                <FractionFormula variable="Xm" num1={A.x} num2={B.x} color1={pointColors.A} color2={pointColors.B} />
-                            )}
-                            {type === QT.FindEndpoint && M && (
-                                 <EndpointFormula variable="Xb" numM={M.x} numA={A.x} colorM={pointColors.M} colorA={pointColors.A} />
-                            )}
-                        </div>
+                         <h3 className={`font-bold text-lg mb-2 ${coordColors.X.text}`}>שיעור X</h3>
                         <div className="flex justify-center items-center gap-2 mt-2" dir="ltr">
                             <label htmlFor="x-input" className={`font-bold text-xl ${coordColors.X.text}`}>X =</label>
                             <input
@@ -241,7 +295,7 @@ export default function PracticeEngine({ updateUser }) {
                                 type="number"
                                 value={userAnswerX}
                                 onChange={(e) => setUserAnswerX(e.target.value)}
-                                disabled={showFeedback}
+                                disabled={isInputDisabled}
                                 className={`w-28 text-center text-lg p-2 border-2 rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 transition ${coordColors.X.focus}`}
                                 aria-label="Coordinate X"
                             />
@@ -254,10 +308,10 @@ export default function PracticeEngine({ updateUser }) {
             return <CoordinatePlane 
                 pointsToDraw={question.points}
                 onPointSelect={(p) => setUserAnswerPoint(p)}
-                interactive={!showFeedback}
+                interactive={!isInputDisabled}
                 answerPoint={userAnswerPoint}
                 correctAnswer={question.answer}
-                showCorrectAnswer={showFeedback}
+                showCorrectAnswer={answerState === 'correct' || answerState === 'incorrect_final'}
             />;
     }
   };
@@ -272,44 +326,172 @@ export default function PracticeEngine({ updateUser }) {
 
   return (
     <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
+      <div className="flex justify-between items-center mb-2">
+        <button onClick={onExit} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
+            &larr; שנה הגדרות
+        </button>
+        <span className="text-sm font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300 px-3 py-1 rounded-full">
+            רמת קושי: {difficulty.name}
+        </span>
+      </div>
       <h2 className="text-2xl font-medium text-gray-800 dark:text-gray-100 mb-2 text-center leading-relaxed">
         <QuestionTextView question={question} />
       </h2>
       
-      {question.answerFormat === AF.MultipleChoice && <FormulaDisplay question={question} />}
+      {showHint && (
+        <div className="my-4">
+          <h3 className="text-center font-bold text-indigo-600 dark:text-indigo-400 mb-2">רמז: הנוסחה</h3>
+          <FormulaDisplay question={question} />
+        </div>
+      )}
       
       <div>{renderAnswerInput()}</div>
 
-      <div className="mt-8 text-center">
-        {!showFeedback ? (
-          <button onClick={handleAnswerSubmit} disabled={isSubmitDisabled} className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-bold py-3 px-12 rounded-lg text-lg transition-all transform hover:scale-105">
-            בדיקה
-          </button>
+      <div className="mt-8 text-center min-h-[150px]">
+        {answerState === 'initial' || answerState === 'incorrect_try' ? (
+          <>
+            {answerState === 'incorrect_try' && (
+              <div className="mb-4 p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 font-semibold">
+                תשובה לא נכונה. נותרו לך {MAX_ATTEMPTS - attempts} נסיונות.
+              </div>
+            )}
+            <button 
+              onClick={handleAnswerSubmit} 
+              disabled={isSubmitDisabled} 
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-bold py-3 px-12 rounded-lg text-lg transition-all transform hover:scale-105"
+            >
+              {attempts > 0 ? 'נסה/י שוב' : 'בדיקה'}
+            </button>
+          </>
         ) : (
           <div className="flex flex-col items-center gap-4">
-             <div className={`p-4 rounded-lg w-full text-white font-bold text-lg ${answerState === 'correct' ? 'bg-green-500' : 'bg-red-500'}`}>
-                {answerState === 'correct' ? 'כל הכבוד! תשובה נכונה!' : <>טעות. התשובה הנכונה היא <FormattedPoint point={question.answer} /></>}
-            </div>
+            {answerState === 'correct' ? (
+              <div className="p-4 rounded-lg w-full text-white font-bold text-lg bg-green-500">
+                כל הכבוד! +{pointsForQuestion} נקודות!
+              </div>
+            ) : (
+              <div className="p-4 rounded-lg w-full text-white font-bold text-lg bg-red-500">
+                טעות. התשובה הנכונה היא <FormattedPoint point={question.answer} />
+              </div>
+            )}
             
-            {question.answerFormat !== AF.Graphical && (
+            {answerState === 'incorrect_final' && question.answerFormat !== AF.Graphical && (
                 <div className="w-full mt-4">
                     <CoordinatePlane
-                        pointsToDraw={question.points}
-                        interactive={false}
-                        onPointSelect={() => {}}
-                        answerPoint={userAnswerPoint}
-                        correctAnswer={question.answer}
-                        showCorrectAnswer={true}
+                        pointsToDraw={question.points} interactive={false} onPointSelect={() => {}}
+                        answerPoint={userAnswerPoint} correctAnswer={question.answer} showCorrectAnswer={true}
                     />
                 </div>
             )}
+            
+            <div className="flex flex-wrap justify-center gap-4">
+                <button onClick={loadNewQuestion} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-12 rounded-lg text-lg transition-transform transform hover:scale-105">
+                  שאלה הבאה
+                </button>
+                {answerState === 'incorrect_final' && (
+                  <button onClick={handleGeminiExplain} disabled={isGeminiLoading} className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105">
+                    {isGeminiLoading ? 'טוען הסבר...' : 'הסבר עם Gemini'}
+                  </button>
+                )}
+            </div>
 
-            <button onClick={loadNewQuestion} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-12 rounded-lg text-lg transition-transform transform hover:scale-105">
-              שאלה הבאה
-            </button>
+            {geminiExplanation && (
+              <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-right w-full whitespace-pre-wrap leading-relaxed">
+                <h3 className="font-bold text-lg mb-2 text-gray-800 dark:text-gray-100">הסבר מ-Gemini:</h3>
+                <div className="text-gray-700 dark:text-gray-200">{geminiExplanation}</div>
+              </div>
+            )}
           </div>
         )}
       </div>
     </div>
   );
+};
+
+
+// --- Practice Setup Component ---
+const PracticeSetup = ({ onStart }) => {
+    const [selectedSubjects, setSelectedSubjects] = useState([SUBJECTS.MIDPOINT.id]);
+    const [selectedDifficulty, setSelectedDifficulty] = useState(DIFFICULTY_LEVELS.EASY.id);
+
+    const handleSubjectToggle = (subjectId) => {
+        setSelectedSubjects(prev => 
+            prev.includes(subjectId)
+                ? prev.filter(id => id !== subjectId)
+                : [...prev, subjectId]
+        );
+    };
+    
+    return (
+        <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
+            <h2 className="text-3xl font-bold text-center mb-2 text-gray-900 dark:text-white">הגדרות תרגול</h2>
+            <p className="text-center text-gray-600 dark:text-gray-400 mb-8">בחר/י את הנושאים ורמת הקושי כדי להתחיל.</p>
+            
+            <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">נושאים לתרגול</h3>
+                <div className="space-y-3">
+                    {Object.values(SUBJECTS).map(subject => (
+                        <label 
+                            key={subject.id}
+                            className={`flex items-center p-4 rounded-lg border-2 transition-colors ${
+                                selectedSubjects.includes(subject.id) ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/50' : 'border-gray-300 dark:border-gray-600'
+                            } ${subject.enabled ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={selectedSubjects.includes(subject.id)}
+                                onChange={() => handleSubjectToggle(subject.id)}
+                                disabled={!subject.enabled}
+                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="mr-3 font-medium text-gray-900 dark:text-gray-100">{subject.name}</span>
+                             {!subject.enabled && (
+                                <span className="mr-auto text-xs font-semibold bg-yellow-400 text-gray-800 px-2 py-0.5 rounded-full">
+                                    בקרוב!
+                                </span>
+                            )}
+                        </label>
+                    ))}
+                </div>
+            </div>
+
+            <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">רמת קושי</h3>
+                <div className="flex flex-col sm:flex-row rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
+                    {Object.values(DIFFICULTY_LEVELS).map(level => (
+                        <button
+                            key={level.id}
+                            onClick={() => setSelectedDifficulty(level.id)}
+                            className={`flex-1 p-3 text-center font-bold transition-colors ${
+                                selectedDifficulty === level.id 
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            {level.name}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <button 
+                onClick={() => onStart({ subjects: selectedSubjects, difficulty: selectedDifficulty })}
+                disabled={selectedSubjects.length === 0}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-bold py-4 px-12 rounded-lg text-xl transition-all transform hover:scale-105"
+            >
+                התחל תרגול!
+            </button>
+        </div>
+    );
+}
+
+// --- Main Component ---
+export default function PracticeEngine({ updateUser }) {
+  const [practiceConfig, setPracticeConfig] = useState(null);
+  
+  if (!practiceConfig) {
+    return <PracticeSetup onStart={setPracticeConfig} />;
+  }
+  
+  return <PracticeSession config={practiceConfig} updateUser={updateUser} onExit={() => setPracticeConfig(null)} />;
 }

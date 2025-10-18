@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect, useCallback } from 'react';
 // Fix: Use firebase v8 syntax. Import firebase to access auth providers and firestore field values.
 // Fix: Updated Firebase imports to use the v8 SDK directly, removing the compat layer.
@@ -30,103 +28,86 @@ export function useUser() {
       }
     }, 10000);
 
-    let unsubscribe = () => {};
-
-    const initializeAuth = async () => {
+    // With the pop-up flow, we only need the onAuthStateChanged listener.
+    // The redirect check has been removed to prevent errors on load in sandboxed environments.
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      console.log('[Auth State Change] Triggered.');
+      clearTimeout(loadingTimeout);
       try {
-        console.log("[Auth Init] Setting persistence to 'none' to support this environment.");
-        // Set persistence to 'none' because the environment may not support web storage (e.g., sandboxed iframes).
-        await auth.setPersistence(firebase.auth.Auth.Persistence.NONE);
-        console.log("[Auth Init] Persistence set successfully.");
+        if (firebaseUser) {
+          console.log('[Auth State Change] User is signed in. Full user object:', firebaseUser);
+          console.log('[Auth State Change] UID:', firebaseUser.uid, 'Email:', firebaseUser.email, 'DisplayName:', firebaseUser.displayName);
+          
+          // Fix: Use v8 syntax for document reference.
+          const userDocRef = db.collection(USER_COLLECTION).doc(firebaseUser.uid);
+          console.log(`[Auth State Change] Checking for user document at ${USER_COLLECTION}/${firebaseUser.uid}`);
+          // Fix: Use v8 get() method on document reference.
+          const userDocSnap = await userDocRef.get();
+          
+          if (userDocSnap.exists) {
+            console.log('[Auth State Change] User document found. Setting user state.');
+            setUser({ uid: firebaseUser.uid, ...userDocSnap.data(), emailVerified: firebaseUser.emailVerified });
+          } else {
+            console.log(`[Auth State Change] User document not found. Proceeding to create a new one.`);
+            try {
+              let username = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : `user_${firebaseUser.uid.substring(0, 5)}`);
+              console.log('[User Creation] Initial username from provider:', username);
 
-        // Now that persistence is set, we can safely attach the auth state listener.
-        unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-          console.log('[Auth State Change] Triggered.');
-          clearTimeout(loadingTimeout);
-          try {
-            if (firebaseUser) {
-              console.log('[Auth State Change] User is signed in. Full user object:', firebaseUser);
-              console.log('[Auth State Change] UID:', firebaseUser.uid, 'Email:', firebaseUser.email, 'DisplayName:', firebaseUser.displayName);
-              
-              // Fix: Use v8 syntax for document reference.
-              const userDocRef = db.collection(USER_COLLECTION).doc(firebaseUser.uid);
-              console.log(`[Auth State Change] Checking for user document at ${USER_COLLECTION}/${firebaseUser.uid}`);
-              // Fix: Use v8 get() method on document reference.
-              const userDocSnap = await userDocRef.get();
-              
-              if (userDocSnap.exists) {
-                console.log('[Auth State Change] User document found. Setting user state.');
-                setUser({ uid: firebaseUser.uid, ...userDocSnap.data(), emailVerified: firebaseUser.emailVerified });
-              } else {
-                console.log(`[Auth State Change] User document not found. Proceeding to create a new one.`);
-                try {
-                  let username = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : `user_${firebaseUser.uid.substring(0, 5)}`);
-                  console.log('[User Creation] Initial username from provider:', username);
+              username = username.replace(/[^a-zA-Z0-9א-ת_]/g, '');
+              console.log('[User Creation] Sanitized username:', username);
 
-                  username = username.replace(/[^a-zA-Z0-9א-ת_]/g, '');
-                  console.log('[User Creation] Sanitized username:', username);
-
-                  if(isProfane(username)) {
-                      username = `user_${firebaseUser.uid.substring(0, 5)}`;
-                      console.log('[User Creation] Profanity detected. Resetting username to:', username);
-                  }
-
-                  // Fix: Use v8 syntax for collection reference.
-                  const usersRef = db.collection(USER_COLLECTION);
-                  console.log('[User Creation] Checking for username uniqueness...');
-                  // Fix: Use v8 where() and get() methods for queries.
-                  const q = usersRef.where("username", "==", username);
-                  const querySnapshot = await q.get();
-
-                  const finalUsername = querySnapshot.empty ? username : `${username}_${Math.random().toString(36).substring(2, 7)}`;
-                  if (!querySnapshot.empty) {
-                      console.log('[User Creation] Username exists. Appending random suffix. Final username:', finalUsername);
-                  } else {
-                      console.log('[User Creation] Username is unique. Final username:', finalUsername);
-                  }
-                  
-                  const newUser = {
-                      uid: firebaseUser.uid,
-                      email: firebaseUser.email,
-                      username: finalUsername,
-                      score: 0,
-                      completedExercises: 0,
-                  };
-                  console.log('[User Creation] New user object to be saved:', newUser);
-                  
-                  // Fix: Use v8 set() method on document reference.
-                  await userDocRef.set(newUser);
-                  console.log('[User Creation] New user document created successfully.');
-                  setUser({...newUser, emailVerified: firebaseUser.emailVerified});
-                } catch (error) {
-                  console.error("[User Creation] CRITICAL: Failed to create user document:", error);
-                  // Fix: Use v8 signOut method from auth instance.
-                  await auth.signOut();
-                  setUser(null);
-                }
+              if(isProfane(username)) {
+                  username = `user_${firebaseUser.uid.substring(0, 5)}`;
+                  console.log('[User Creation] Profanity detected. Resetting username to:', username);
               }
-            } else {
-              console.log('[Auth State Change] User is signed out.');
+
+              // Fix: Use v8 syntax for collection reference.
+              const usersRef = db.collection(USER_COLLECTION);
+              console.log('[User Creation] Checking for username uniqueness...');
+              // Fix: Use v8 where() and get() methods for queries.
+              const q = usersRef.where("username", "==", username);
+              const querySnapshot = await q.get();
+
+              const finalUsername = querySnapshot.empty ? username : `${username}_${Math.random().toString(36).substring(2, 7)}`;
+              if (!querySnapshot.empty) {
+                  console.log('[User Creation] Username exists. Appending random suffix. Final username:', finalUsername);
+              } else {
+                  console.log('[User Creation] Username is unique. Final username:', finalUsername);
+              }
+              
+              const newUser = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  username: finalUsername,
+                  score: 0,
+                  completedExercises: 0,
+              };
+              console.log('[User Creation] New user object to be saved:', newUser);
+              
+              // Fix: Use v8 set() method on document reference.
+              await userDocRef.set(newUser);
+              console.log('[User Creation] New user document created successfully.');
+              setUser({...newUser, emailVerified: firebaseUser.emailVerified});
+            } catch (error) {
+              console.error("[User Creation] CRITICAL: Failed to create user document:", error);
+              // Fix: Use v8 signOut method from auth instance.
+              await auth.signOut();
               setUser(null);
             }
-          } catch (error) {
-            console.error("[Auth State Change] A critical error occurred in the auth state handler:", error);
-            setAuthError(error);
-            setUser(null);
-          } finally {
-            setLoading(false);
-            console.log('[Auth State Change] Finished processing. Loading set to false.');
           }
-        });
+        } else {
+          console.log('[Auth State Change] User is signed out.');
+          setUser(null);
+        }
       } catch (error) {
-        console.error("[Auth Init] Failed to set persistence. This environment might not support any auth persistence.", error);
+        console.error("[Auth State Change] A critical error occurred in the auth state handler:", error);
         setAuthError(error);
+        setUser(null);
+      } finally {
         setLoading(false);
-        clearTimeout(loadingTimeout);
+        console.log('[Auth State Change] Finished processing. Loading set to false.');
       }
-    };
-
-    initializeAuth();
+    });
 
     return () => {
       unsubscribe();
@@ -135,7 +116,7 @@ export function useUser() {
   }, []);
   
   const signInWithGoogle = async () => {
-    console.log('[Sign In] Attempting to sign in with Google via popup...');
+    console.log('[Sign In] Attempting to sign in with Google via pop-up...');
     setLoading(true);
     setAuthError(null);
     // Fix: Use v8 syntax for GoogleAuthProvider.
@@ -143,11 +124,9 @@ export function useUser() {
     try {
         // Fix: Use v8 signInWithPopup method from auth instance.
         await auth.signInWithPopup(provider);
-        console.log('[Sign In] signInWithPopup successful. Waiting for onAuthStateChanged...');
-        // onAuthStateChanged will be triggered, which will set the user
-        // and also set loading to false in its finally block.
+        console.log('[Sign In] Google sign-in pop-up successful. Waiting for onAuthStateChanged...');
     } catch (error) {
-        console.error("[Sign In] Google sign-in failed. Code:", error.code, "Message:", error.message);
+        console.error("[Sign In] Google sign-in pop-up failed. Code:", error.code, "Message:", error.message);
         console.error("[Sign In] Full error object:", error);
         setAuthError(error);
         setLoading(false); // Stop loading on error
@@ -155,16 +134,29 @@ export function useUser() {
   };
 
   const signInWithEmail = async (email, password) => {
-    console.log('[Sign In] Attempting to sign in with email...');
+    console.log(`[Sign In] Attempting to sign in with email: ${email}`);
     setLoading(true);
     setAuthError(null);
     try {
       await auth.signInWithEmailAndPassword(email, password);
       console.log('[Sign In] signInWithEmailAndPassword successful. Waiting for onAuthStateChanged...');
     } catch (error) {
-      console.error("[Sign In] Email sign-in failed. Code:", error.code, "Message:", error.message);
-      setAuthError(error);
-      setLoading(false);
+      // If user is not found, try to create a new account with the same credentials
+      if (error.code === 'auth/user-not-found') {
+        console.warn(`[Sign In] User ${email} not found. Attempting to create a new account.`);
+        try {
+          await auth.createUserWithEmailAndPassword(email, password);
+          console.log('[Sign Up] createUserWithEmailAndPassword successful after failed login. Waiting for onAuthStateChanged...');
+        } catch (signUpError) {
+           console.error("[Sign Up] Failed to create new user. Code:", signUpError.code, "Message:", signUpError.message);
+           setAuthError(signUpError); // Show the sign-up error (e.g., weak password)
+           setLoading(false);
+        }
+      } else {
+        console.error("[Sign In] Email sign-in failed. Code:", error.code, "Message:", error.message);
+        setAuthError(error);
+        setLoading(false);
+      }
     }
   };
 

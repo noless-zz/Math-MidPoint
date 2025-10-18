@@ -20,24 +20,10 @@ const UserIcon = (props) => (
     </svg>
 );
 
-const CopyIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
-  </svg>
-);
-
-const CheckIcon = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
-);
-
-
 export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authError, onSignInWithEmail, onSignUpWithEmail }) {
     const [mode, setMode] = useState('signIn'); // 'signIn' or 'signUp'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [copied, setCopied] = useState(false);
 
     const handleSubmit = (e) => {
       e.preventDefault();
@@ -47,21 +33,18 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
         onSignUpWithEmail(email, password);
       }
     };
-
-    const handleCopy = (text) => {
-        navigator.clipboard.writeText(text).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        });
-    };
     
     const getErrorMessage = (error) => {
       if (!error) return null;
       switch (error.code) {
         case 'auth/operation-not-supported-in-this-environment':
-          return null; // This case is handled by a special banner
+          return 'ההתחברות באמצעות גוגל אינה נתמכת בסביבת הרצה זו.';
         case 'auth/unauthorized-domain':
-          return null; // This case is handled by a special banner
+          return 'הדומיין אינו מורשה. יש לעדכן את הגדרות Firebase.';
+        case 'auth/popup-closed-by-user':
+          return 'חלון ההתחברות נסגר. נסה/י שוב.';
+        case 'auth/cancelled-popup-request':
+          return 'בוצעה בקשת התחברות נוספת לפני שהנוכחית הושלמה.';
         case 'auth/invalid-email':
           return 'כתובת האימייל אינה תקינה.';
         case 'auth/user-not-found':
@@ -79,47 +62,13 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
     
   const renderAuthError = () => {
     if (!authError) return null;
-    const genericErrorMessage = getErrorMessage(authError);
-
-    if (authError.code === 'auth/operation-not-supported-in-this-environment') {
-      return (
-        <div className="bg-yellow-50 border-2 border-yellow-500 text-yellow-900 p-6 rounded-lg mb-6 text-right shadow-lg" role="alert">
-          <p className="text-center font-extrabold text-2xl">תכונה לא זמינה בסביבה זו</p>
-          <p className="text-center mt-3 text-md">
-            ההתחברות באמצעות גוגל אינה נתמכת בסביבת ההרצה הנוכחית של AI Studio.
-          </p>
-          <div className="mt-4 text-sm">
-            <p>
-              <strong>למה זה קורה?</strong> האפליקציה רצה בתוך "ארגז חול" (sandbox) מאובטח המגביל פתיחת חלונות קופצים, שהם חיוניים לתהליך ההתחברות של גוגל. זוהי מגבלה של הסביבה, לא שגיאה באפליקציה.
-            </p>
-            <p className="mt-3 font-semibold">
-              ✅ באפשרותך להשתמש בטופס האימייל והסיסמה או להמשיך כאורח/ת.
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    if (authError.code === 'auth/unauthorized-domain') {
-      const firebaseUrl = `https://console.firebase.google.com/project/middlepoint-f5127/authentication/settings`;
-      const gcpUrl = `https://console.cloud.google.com/apis/credentials?project=middlepoint-f5127`;
-      const wildcardDomain = '*.aistudio.google.com/*';
-
-      return (
-        <div className="bg-red-50 border-2 border-red-500 text-red-900 p-6 rounded-lg mb-6 text-right shadow-lg" role="alert">
-          <p className="text-center font-extrabold text-2xl">שגיאת הגדרות - נדרשת פעולה מצדך</p>
-           <p className="mt-6 text-md font-bold text-center bg-yellow-200 p-2 rounded">
-            שגיאה זו חלה רק על התחברות עם גוגל. ניתן להשתמש באימייל וסיסמה.
-          </p>
-        </div>
-      );
-    }
+    const errorMessage = getErrorMessage(authError);
     
-    if (genericErrorMessage) {
+    if (errorMessage) {
        return (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
           <strong className="font-bold">שגיאה: </strong>
-          <span className="block sm:inline">{genericErrorMessage}</span>
+          <span className="block sm:inline">{errorMessage}</span>
         </div>
       );
     }
@@ -197,15 +146,13 @@ export default function AuthScreen({ onSignInWithGoogle, onSignInAsGuest, authEr
                 </div>
             </div>
             <div className="mt-6 grid grid-cols-1 gap-3">
-                 {authError?.code !== 'auth/operation-not-supported-in-this-environment' && (
-                    <button
-                      onClick={onSignInWithGoogle}
-                      className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2.5 px-4 rounded-lg transition-colors hover:bg-gray-50 dark:hover:bg-gray-600 text-sm"
-                    >
-                      <GoogleIcon className="h-5 w-5" />
-                      <span>המשך עם גוגל</span>
-                    </button>
-                  )}
+                 <button
+                   onClick={onSignInWithGoogle}
+                   className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2.5 px-4 rounded-lg transition-colors hover:bg-gray-50 dark:hover:bg-gray-600 text-sm"
+                 >
+                   <GoogleIcon className="h-5 w-5" />
+                   <span>המשך עם גוגל</span>
+                 </button>
                   <button
                     onClick={onSignInAsGuest}
                     className="w-full flex items-center justify-center gap-3 bg-gray-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors hover:bg-gray-600 text-sm"
