@@ -75,6 +75,10 @@ export interface EquationNumber {
 
 export type EquationPart = EquationFraction | EquationOperator | EquationNumber;
 
+export interface EquationSolution {
+  value: number | null; // null for "no solution"
+  domain: number[]; // e.g., if x != 2 and x != -3, domain will be [2, -3]
+}
 
 export interface Question {
   type: QuestionType;
@@ -82,7 +86,7 @@ export interface Question {
   points?: { A?: Point; B?: Point; C?: Point; M?: Point };
   lines?: LineEquation[];
   equationParts?: EquationPart[];
-  solution: Point | number;
+  solution: Point | number | EquationSolution;
   explanation: string; // This will now be the first-step hint
   detailedExplanation: string[]; // This is the full, step-by-step solution
   difficulty: Difficulty['id'];

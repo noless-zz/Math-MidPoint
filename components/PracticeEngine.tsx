@@ -1,17 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Question, Point, SUBJECTS, DIFFICULTY_LEVELS, Difficulty, QuestionType, LineEquation, EquationPart } from '../types.ts';
+import { Question, Point, SUBJECTS, DIFFICULTY_LEVELS, Difficulty, QuestionType, LineEquation, EquationPart, EquationSolution } from '../types.ts';
 import { generateQuestion } from '../services/exerciseGenerator.ts';
 import CoordinatePlane from './CoordinatePlane.tsx';
 import { design } from '../constants/design_system.ts';
 import { StarIcon } from './icons.tsx';
 import { GoogleGenAI } from '@google/genai';
 
-// --- HELPER & VISUAL COMPONENTS (MOVED OUTSIDE) ---
+// --- HELPER & VISUAL COMPONENTS ---
 
 const ColoredText: React.FC<{ text: string }> = ({ text }) => {
-    // This regex looks for patterns like A(-1, 2) or M?
     const parts = text.split(/([A-Z]\(-?\d+,\s*-?\d+\)|[A-Z]\?)/g);
-    // This regex will not match equation strings, so they will be rendered as plain text, which is what we want.
     if (parts.length <= 1) {
         return <span dir="rtl">{text}</span>
     }
@@ -61,164 +59,49 @@ const EquationDisplay: React.FC<{ parts: EquationPart[] }> = ({ parts }) => (
     </div>
 );
 
-
-const FormulaWithSigns: React.FC<{ values: (string | number)[] }> = ({ values }) => {
-    const [val1, val2] = values.map(Number);
-    const op = val2 < 0 ? '-' : '+';
-    const finalVal2 = Math.abs(val2);
-    // Special case for start of expression to avoid `- -5`
-    if (val1 === 0 && op === '-') {
-        return <span dir="ltr" className="font-mono">-{finalVal2}</span>
-    }
-    if (val1 === 0 && op === '+') {
-        return <span dir="ltr" className="font-mono">{finalVal2}</span>
-    }
-    return (
-        <span dir="ltr" className="font-mono">
-            {val1} <span className="mx-1">{op}</span> {finalVal2}
-        </span>
-    );
-};
-
 const ColoredPointDisplay: React.FC<{ point: Point }> = ({ point }) => (
     <span dir="ltr" className="inline-block font-bold">
         (<span className={design.pointColors.X.text}>{point.x}</span>, <span className={design.pointColors.Y.text}>{point.y}</span>)
     </span>
 );
 
-// --- GENERIC HINT COMPONENTS ---
-
-const GeneralFormulaHint: React.FC<{ type: QuestionType }> = ({ type }) => {
-    let formula;
-    switch (type) {
-        case 'FIND_ENDPOINT':
-        case 'FIND_ENDPOINT_MCQ':
-             formula = (
-                <div className="flex flex-col md:flex-row items-center justify-center font-bold text-lg md:text-xl gap-x-6 gap-y-2">
-                    <span><span className={design.pointColors.B.text}>x<sub>B</sub></span> = 2 &middot; <span className={design.pointColors.M.text}>x<sub>M</sub></span> - <span className={design.pointColors.A.text}>x<sub>A</sub></span></span>
-                    <span><span className={design.pointColors.B.text}>y<sub>B</sub></span> = 2 &middot; <span className={design.pointColors.M.text}>y<sub>M</sub></span> - <span className={design.pointColors.A.text}>y<sub>A</sub></span></span>
-                </div>
-            );
-            break;
-        case 'FIND_MIDPOINT':
-        case 'FIND_MIDPOINT_MCQ':
-        case 'FIND_MIDPOINT_VISUAL':
-            formula = (
-                <div className="flex flex-col md:flex-row items-center justify-center font-bold text-lg md:text-xl gap-x-6 gap-y-2">
-                    <span><span className={design.pointColors.M.text}>x<sub>M</sub></span> = <SimpleFraction numerator={<><span className={design.pointColors.A.text}>x<sub>A</sub></span> + <span className={design.pointColors.B.text}>x<sub>B</sub></span></>} denominator={2} /></span>
-                    <span><span className={design.pointColors.M.text}>y<sub>M</sub></span> = <SimpleFraction numerator={<><span className={design.pointColors.A.text}>y<sub>A</sub></span> + <span className={design.pointColors.B.text}>y<sub>B</sub></span></>} denominator={2} /></span>
-                </div>
-            );
-            break;
-        case 'CALCULATE_SLOPE':
-            formula = <span><span className="font-bold">m</span> = <SimpleFraction numerator={<><span className={design.pointColors.B.text}>y<sub>B</sub></span> - <span className={design.pointColors.A.text}>y<sub>A</sub></span></>} denominator={<><span className={design.pointColors.B.text}>x<sub>B</sub></span> - <span className={design.pointColors.A.text}>x<sub>A</sub></span></>} /></span>;
-            break;
-        case 'CALCULATE_DISTANCE':
-            formula = <span className="text-sm md:text-base">d = &radic;[ (<span className={design.pointColors.B.text}>x<sub>B</sub></span> - <span className={design.pointColors.A.text}>x<sub>A</sub></span>)<sup>2</sup> + (<span className={design.pointColors.B.text}>y<sub>B</sub></span> - <span className={design.pointColors.A.text}>y<sub>A</sub></span>)<sup>2</sup> ]</span>;
-            break;
-        case 'FIND_PERPENDICULAR_SLOPE':
-            formula = <span>m<sub>1</sub> &middot; m<sub>2</sub> = -1</span>;
-            break;
-        case 'SOLVE_EQUATION_VARIABLE_DENOMINATOR':
-             return (
-                <div className={`mt-4 p-4 rounded-lg text-center ${design.learn.formula}`}>
-                    <p className="font-bold text-lg">רמז: מצא/י מכנה משותף וכפול/י את כל המשוואה בו כדי להיפטר מהמכנים.</p>
-                </div>
-            );
-        default:
-            return null;
-    }
+// --- NEW EXPLANATION RENDERER ---
+const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ step, index }) => {
+    const parts = step.split(/:(.*)/s); // Split on the first colon
+    const textPart = parts.length > 1 ? parts[0].trim() + ':' : step;
+    const equationPart = parts.length > 1 ? parts[1].trim() : null;
 
     return (
-        <div className={`mt-4 p-4 rounded-lg text-center ${design.learn.formula}`}>
-             <div dir="ltr" className="font-bold text-lg md:text-xl">
-                {formula}
+        <div className="flex items-start gap-x-4 p-3 bg-white dark:bg-gray-800/80 rounded-lg shadow-sm">
+            {/* Step Number */}
+            <div className="flex-shrink-0 w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center font-bold text-md mt-1">
+                {index + 1}
+            </div>
+            {/* Content */}
+            <div className="flex-grow">
+                <p className="font-semibold text-gray-800 dark:text-gray-200">{textPart}</p>
+                {equationPart && (
+                    <div dir="ltr" className="mt-2 p-3 bg-gray-100 dark:bg-gray-900 border-l-4 border-indigo-400 rounded-md text-center font-mono text-lg">
+                        {equationPart}
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
-const DetailedFormulaHint: React.FC<{ question: Question }> = ({ question }) => {
-    const { A, B, M } = question.points || {};
-    const type = question.type;
-
-    if (type.includes('MIDPOINT') || type.includes('ENDPOINT')) {
-        return <VisualFormulaDisplay question={question} type={type.includes('ENDPOINT') ? 'endpoint' : 'midpoint'} />;
-    }
-    
-    let xCalc, yCalc;
-
-    switch (type) {
-        case 'CALCULATE_SLOPE':
-            if (A && B) {
-                 xCalc = (
-                    <div className="text-center font-mono text-lg">
-                        <span className="font-bold">m</span> = <SimpleFraction numerator={<FormulaWithSigns values={[B.y, -A.y]} />} denominator={<FormulaWithSigns values={[B.x, -A.x]} />} />
-                    </div>
-                 );
-            }
-            break;
-        case 'CALCULATE_DISTANCE':
-             if (A && B) {
-                 xCalc = (
-                    <div className="text-center font-mono text-sm md:text-base" dir="ltr">
-                        d = &radic;[ ({B.x} - {A.x})<sup>2</sup> + ({B.y} - {A.y})<sup>2</sup> ]
-                    </div>
-                 );
-            }
-            break;
-         case 'FIND_PERPENDICULAR_SLOPE':
-             if (typeof question.solution === 'number') {
-                const m1 = -1 / question.solution;
-                xCalc = (
-                    <div className="text-center font-mono text-lg" dir="ltr">
-                        m<sub>2</sub> = -1 / ({m1.toFixed(2)})
-                    </div>
-                )
-             }
-            break;
-        // Other cases can be added here
-        default:
-            return null;
-    }
-    
-     return (
-         <div className="flex flex-col sm:flex-row-reverse gap-4 mt-4" dir="rtl">
-            <div className={`${design.practice.visualFormulaBox.base} ${design.practice.visualFormulaBox.x} w-full`}>
-                <h4 className={design.practice.visualFormulaBox.xText}>הצבה בנוסחה</h4>
-                {xCalc}
-            </div>
+const ExplanationRenderer: React.FC<{ steps: string[], title: string }> = ({ steps, title }) => (
+    <>
+        <h4 className="font-bold text-lg mt-4 mb-3">{title}</h4>
+        <div className="space-y-3 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+            {steps.map((step, index) => (
+                <ExplanationStepDisplay key={index} step={step} index={index} />
+            ))}
         </div>
-    );
-};
+    </>
+);
 
 // --- PRACTICE-SPECIFIC INPUT & DISPLAY COMPONENTS ---
-
-const VisualFormulaDisplay: React.FC<{ question: Question, type: 'midpoint' | 'endpoint' }> = ({ question, type }) => {
-    const { A, B, M } = question.points || {};
-    let xCalc, yCalc;
-
-    if (type === 'endpoint' && A && M) {
-        xCalc = <span dir="ltr"><span className={design.pointColors.B.text}>X<sub>B</sub></span> = 2 &middot; {M.x} - ({A.x})</span>;
-        yCalc = <span dir="ltr"><span className={design.pointColors.B.text}>Y<sub>B</sub></span> = 2 &middot; {M.y} - ({A.y})</span>;
-    } else if (type === 'midpoint' && A && B) {
-        xCalc = <span dir="ltr"><span className={design.pointColors.M.text}>X<sub>M</sub></span> = <SimpleFraction numerator={<FormulaWithSigns values={[A.x, B.x]} />} denominator={2} /></span>;
-        yCalc = <span dir="ltr"><span className={design.pointColors.M.text}>Y<sub>M</sub></span> = <SimpleFraction numerator={<FormulaWithSigns values={[A.y, B.y]} />} denominator={2} /></span>;
-    }
-
-    return (
-         <div className="flex flex-col sm:flex-row-reverse gap-4 mt-4" dir="rtl">
-            <div className={`${design.practice.visualFormulaBox.base} ${design.practice.visualFormulaBox.x}`}>
-                <h4 className={design.practice.visualFormulaBox.xText}>חישוב שיעור X</h4>
-                <div className="text-center font-mono text-lg">{xCalc}</div>
-            </div>
-            <div className={`${design.practice.visualFormulaBox.base} ${design.practice.visualFormulaBox.y}`}>
-                <h4 className={design.practice.visualFormulaBox.yText}>חישוב שיעור Y</h4>
-                 <div className="text-center font-mono text-lg">{yCalc}</div>
-            </div>
-        </div>
-    );
-};
 
 const PointInput: React.FC<{ value: Partial<Point>, onChange: (p: Partial<Point>) => void }> = ({ value, onChange }) => (
     <div className="flex flex-col sm:flex-row-reverse gap-4 mt-4" dir="rtl">
@@ -233,12 +116,63 @@ const PointInput: React.FC<{ value: Partial<Point>, onChange: (p: Partial<Point>
     </div>
 );
 
-const NumberInput: React.FC<{ value: number | string, onChange: (n: string) => void }> = ({ value, onChange }) => (
+const NumberInput: React.FC<{ value: string, onChange: (n: string) => void, label?: string }> = ({ value, onChange, label = 'תשובה' }) => (
      <div className="mt-4">
-        <label htmlFor="num-input" className={`font-bold`}>תשובה</label>
+        <label htmlFor="num-input" className={`font-bold`}>{label}</label>
         <input id="num-input" type="number" step="any" value={value ?? ''} onChange={(e) => onChange(e.target.value)} className={`${design.components.input.base} !text-lg text-center mt-1`} dir="ltr" />
     </div>
 );
+
+const DomainInput: React.FC<{ values: string[], onChange: (vals: string[]) => void }> = ({ values, onChange }) => {
+    const handleValueChange = (index: number, newValue: string) => {
+        const newValues = [...values];
+        newValues[index] = newValue;
+        onChange(newValues);
+    };
+
+    const addInput = () => {
+        onChange([...values, '']);
+    };
+
+    const removeInput = (index: number) => {
+        if (values.length > 1) {
+            onChange(values.filter((_, i) => i !== index));
+        }
+    };
+    
+    return (
+        <div className="mt-4 space-y-3">
+            <label className="font-bold">תחום הגדרה (ערכים ש-x אינו שווה להם)</label>
+            {values.map((value, index) => (
+                <div key={index} className="flex items-center gap-2">
+                    <span className="font-mono text-lg">x &ne;</span>
+                    <input 
+                        type="number"
+                        step="any"
+                        value={value}
+                        onChange={(e) => handleValueChange(index, e.target.value)}
+                        className={`${design.components.input.base} !text-lg text-center flex-grow`}
+                        dir="ltr"
+                    />
+                    <button 
+                        onClick={() => removeInput(index)}
+                        disabled={values.length <= 1}
+                        className={`p-2 rounded-full text-gray-500 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
+                        title="הסר תחום"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            ))}
+             <button
+                onClick={addInput}
+                className={`w-full text-sm mt-2 ${design.components.button.base.replace('py-3', 'py-2')} ${design.components.button.secondary}`}
+            >
+                + הוסף תחום
+            </button>
+        </div>
+    )
+};
 
 
 const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficulty: Difficulty['id'] }) => void }> = ({ onStart }) => {
@@ -300,29 +234,37 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
 
 const PracticeSession = ({ config, updateUser, onBack }) => {
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-    const [userAnswer, setUserAnswer] = useState<Partial<Point> | number | string | null>(null);
+    const [userAnswer, setUserAnswer] = useState<Partial<Point> | string | null>(null);
+    const [userDomain, setUserDomain] = useState<string[]>(['']);
     const [feedback, setFeedback] = useState<{ isCorrect: boolean; detailedExplanation: string[]; earnedScore: number } | null>(null);
     const [attempts, setAttempts] = useState(0);
-    const [hintLevel, setHintLevel] = useState(0); // 0: none, 1: formula, 2: full
     const [potentialScore, setPotentialScore] = useState(0);
     const [selectedMcq, setSelectedMcq] = useState<number | null>(null);
-    const [currentHint, setCurrentHint] = useState<string | null>(null);
+    const [revealedSteps, setRevealedSteps] = useState<string[]>([]);
+    
+    const isPoint = (val: any): val is Point => typeof val === 'object' && val !== null && 'x' in val && 'y' in val;
+    const isPointAnswer = (val: any): val is {x: any, y: any} => typeof val === 'object' && val !== null && 'x' in val && 'y' in val;
+    const isEquationSolution = (sol: any): sol is EquationSolution =>  typeof sol === 'object' && sol !== null && 'value' in sol && 'domain' in sol;
 
     const setupNewQuestion = useCallback((question: Question) => {
         setCurrentQuestion(question);
         setFeedback(null);
-        setUserAnswer(null);
         setAttempts(0);
         setSelectedMcq(null);
-        setCurrentHint(null);
+        setRevealedSteps([]);
+
+        // Reset answers based on new question type
+        if (isEquationSolution(question.solution)) {
+            setUserAnswer('');
+            setUserDomain(['']);
+        } else {
+             setUserAnswer(null);
+             setUserDomain(['']);
+        }
 
         const difficulty = DIFFICULTY_LEVELS[question.difficulty.toUpperCase()];
         const baseScore = Math.round(10 * difficulty.multiplier);
         setPotentialScore(baseScore);
-
-        if (question.difficulty === 'easy') setHintLevel(2);
-        else if (question.difficulty === 'medium') setHintLevel(1);
-        else setHintLevel(0);
     }, []);
     
     useEffect(() => {
@@ -331,17 +273,24 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
         }
     }, [config, setupNewQuestion]);
 
-
-    const isPoint = (val: any): val is Point => typeof val === 'object' && val !== null && 'x' in val && 'y' in val;
-    const isPointAnswer = (val: any): val is {x: any, y: any} => typeof val === 'object' && val !== null && 'x' in val && 'y' in val;
-
     const checkAnswer = () => {
-        if (!currentQuestion || userAnswer === null || userAnswer === undefined) return;
+        if (!currentQuestion) return;
         
         let isCorrect = false;
         const { solution } = currentQuestion;
 
-        if (isPoint(solution)) {
+        if (isEquationSolution(solution)) {
+            const userValue = userAnswer === null || userAnswer === '' ? NaN : parseFloat(userAnswer as string);
+            const userDomainNumbers = userDomain.filter(d => d.trim() !== '').map(d => parseFloat(d)).sort((a, b) => a - b);
+            const solutionDomain = [...solution.domain].sort((a,b)=>a-b);
+            
+            const valueCorrect = (solution.value === null && isNaN(userValue)) || (solution.value !== null && Math.abs(userValue - solution.value) < 0.01);
+            
+            const domainCorrect = userDomainNumbers.length === solutionDomain.length && userDomainNumbers.every((val, index) => Math.abs(val - solutionDomain[index]) < 0.01);
+            
+            isCorrect = valueCorrect && domainCorrect;
+
+        } else if (isPoint(solution)) {
             if (isPointAnswer(userAnswer) && typeof userAnswer.x === 'number' && typeof userAnswer.y === 'number') {
                if (Math.abs(userAnswer.x - solution.x) < 0.01 && Math.abs(userAnswer.y - solution.y) < 0.01) {
                   isCorrect = true;
@@ -359,22 +308,19 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
         if (isCorrect) {
             setFeedback({ isCorrect: true, detailedExplanation: [currentQuestion.explanation], earnedScore: potentialScore });
             updateUser(potentialScore, 1);
-            setCurrentHint(null);
+            setRevealedSteps([]);
         } else { // Incorrect
             setAttempts(newAttempts);
+            const allSteps = [currentQuestion.explanation, ...currentQuestion.detailedExplanation];
+            const maxHints = allSteps.length;
             
-            let newPotentialScore = potentialScore;
+            setPotentialScore(prev => Math.round(prev * 0.75));
 
-            if (newAttempts === 1) {
-                setCurrentHint(currentQuestion.explanation);
-                 newPotentialScore = Math.round(potentialScore * 0.75); // Reduce potential score on first hint
-            }
-            
-            setPotentialScore(newPotentialScore);
-
-            if (newAttempts >= 3) {
-                 setFeedback({ isCorrect: false, detailedExplanation: currentQuestion.detailedExplanation, earnedScore: 0 });
-                 setCurrentHint(null); // Hide hint when full solution is shown
+            if (newAttempts >= 3 || revealedSteps.length >= maxHints - 1) {
+                 setFeedback({ isCorrect: false, detailedExplanation: allSteps, earnedScore: 0 });
+                 setRevealedSteps([]);
+            } else {
+                setRevealedSteps(allSteps.slice(0, revealedSteps.length + 1));
             }
         }
     };
@@ -384,7 +330,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
     };
     
     const handleMcqSelect = (option: Point | number, index: number) => {
-      setUserAnswer(option);
+      setUserAnswer(isPoint(option) ? option : String(option));
       setSelectedMcq(index);
     };
 
@@ -396,26 +342,25 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
         return subjectEntry ? subjectEntry.name : 'שאלה כללית';
     };
     
-    const renderHint = () => {
-        if (hintLevel === 0 || feedback) return null; // Don't show old hints with feedback
-        
-        let hintContent = null;
-        if(currentHint) {
-            hintContent = <p><span className="font-bold">רמז:</span> {currentHint}</p>;
-        } else if (hintLevel > 0) {
-            // This is for the formula-based hints that were there before
-            if (hintLevel === 1) hintContent = <GeneralFormulaHint type={currentQuestion.type} />;
-            if (hintLevel === 2) hintContent = <DetailedFormulaHint question={currentQuestion} />;
-        }
-        
-        if (!hintContent) return null;
+    const renderRevealedHints = () => {
+        if (revealedSteps.length === 0 || feedback) return null;
 
         return (
-// Fix: Correctly reference feedback colors from `design.colors.feedback` instead of `design.feedback`.
             <div className={`mt-4 p-4 rounded-lg ${design.colors.feedback.warning.bg} border-r-4 ${design.colors.feedback.warning.border} ${design.colors.feedback.warning.text}`}>
-                {hintContent}
+                <ExplanationRenderer steps={revealedSteps} title="רמזים:" />
             </div>
         );
+    };
+
+    const formatSolution = (solution: Question['solution']) => {
+        if (isEquationSolution(solution)) {
+            const valStr = solution.value === null ? 'אין פתרון' : `x = ${solution.value}`;
+            const domainStr = `תחום הגדרה: x ≠ ${solution.domain.join(', ')}`;
+            return `${valStr}, ${domainStr}`;
+        }
+        if (isPoint(solution)) return <ColoredPointDisplay point={solution} />;
+        if (typeof solution === 'number') return solution.toFixed(2);
+        return String(solution);
     };
     
     // --- RENDER LOGIC ---
@@ -426,6 +371,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
 
     const isMcq = currentQuestion.type.includes('MCQ');
     const isVisual = currentQuestion.type.includes('VISUAL');
+    const solutionIsEquation = isEquationSolution(currentQuestion.solution);
     const solutionIsPoint = isPoint(currentQuestion.solution);
     
     const renderAnswerArea = () => {
@@ -443,12 +389,27 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                 </div>
             );
         }
+        if (solutionIsEquation) {
+            return (
+                <>
+                    <NumberInput value={userAnswer as string || ''} onChange={(val) => setUserAnswer(val)} label="פתרון (x)" />
+                    <DomainInput values={userDomain} onChange={setUserDomain} />
+                </>
+            );
+        }
         if (solutionIsPoint) {
             return <PointInput value={userAnswer as Partial<Point> || {}} onChange={setUserAnswer} />;
         }
         return <NumberInput value={userAnswer as string || ''} onChange={(val) => setUserAnswer(val)} />;
     };
     
+    const isAnswerEmpty = () => {
+        if(solutionIsEquation) {
+            return (userAnswer as string).trim() === '';
+        }
+        return userAnswer === null;
+    }
+
     return (
         <div className="max-w-5xl mx-auto space-y-4">
              <div className="flex justify-between items-center">
@@ -481,8 +442,8 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                         {!feedback ? (
                             <>
                                 {renderAnswerArea()}
-                                {renderHint()}
-                                <button onClick={checkAnswer} disabled={userAnswer === null} className={`w-full mt-6 ${design.components.button.base} ${design.components.button.primary} ${design.components.button.disabled}`}>
+                                {renderRevealedHints()}
+                                <button onClick={checkAnswer} disabled={isAnswerEmpty()} className={`w-full mt-6 ${design.components.button.base} ${design.components.button.primary} ${design.components.button.disabled}`}>
                                     בדוק/י תשובה
                                 </button>
                             </>
@@ -490,20 +451,13 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                            <div className={design.practice.feedbackCard(feedback.isCorrect)}>
                                <h3 className="text-2xl font-bold mb-2">{feedback.isCorrect ? 'כל הכבוד!' : 'תשובה שגויה'}</h3>
                                
-                               {!feedback.isCorrect && <p className="mb-2">התשובה הנכונה היא: <span className="font-bold">{isPoint(currentQuestion.solution) ? <ColoredPointDisplay point={currentQuestion.solution} /> : currentQuestion.solution}</span></p>}
+                               {!feedback.isCorrect && <p className="mb-2">התשובה הנכונה היא: <span className="font-bold">{formatSolution(currentQuestion.solution)}</span></p>}
 
                                 <div className="mt-2 text-right">
                                     {feedback.isCorrect ? (
                                         <p>{feedback.detailedExplanation[0]}</p>
                                     ) : (
-                                        <>
-                                            <h4 className="font-bold mt-4 mb-2">דרך הפתרון:</h4>
-                                            <ol className="list-decimal list-inside space-y-2 text-sm bg-gray-100 dark:bg-gray-700/50 p-4 rounded-md">
-                                                {feedback.detailedExplanation.map((step, index) => (
-                                                    <li key={index}>{step}</li>
-                                                ))}
-                                            </ol>
-                                        </>
+                                        <ExplanationRenderer steps={feedback.detailedExplanation} title="דרך הפתרון:" />
                                     )}
                                 </div>
 
