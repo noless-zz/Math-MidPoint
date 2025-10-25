@@ -7,12 +7,37 @@ import { SUBJECTS } from '../types.ts';
 
 const FIRESTORE_COLLECTION = 'scores_aloni_yitzhak_10_4';
 
+// --- Helper Functions ---
+const getStartOfWeek = (date: Date): Date => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // MONDAY start
+    d.setDate(diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+
+const formatDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// --- Type Definitions ---
+interface UserStats {
+  periodId: string;
+  score: number;
+  scoresBySubject: Record<string, number>;
+}
+
 interface LeaderboardUser {
     id: string;
     username: string;
-    score: number;
+    score: number; // Overall score
     scoresBySubject?: Record<string, number>;
-    lastPlayed?: any; // firebase.firestore.Timestamp
+    dailyStats?: UserStats;
+    weeklyStats?: UserStats;
 }
 
 interface LeaderboardRowProps {
@@ -52,21 +77,6 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, rank, isCurrentUs
     );
 };
 
-const getStartOfDay = (date: Date): Date => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d;
-};
-
-const getStartOfWeek = (date: Date): Date => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Sunday as start of week
-    d.setDate(diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
-};
-
 const TopicLeaderCard = ({ subjectName, leader }) => (
     <div className="w-full bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
         <h4 className="font-bold text-indigo-600 dark:text-indigo-400 truncate h-12 flex items-center justify-center">{subjectName}</h4>
@@ -93,7 +103,7 @@ const OverallLeaderCard = ({ title, leader }) => (
 
 const TopicLeaders = ({ leaders }) => (
     <div className="mb-12">
-        <h3 className="text-2xl font-bold text-right mb-4">מובילי הנושאים</h3>
+        <h3 className="text-2xl font-bold text-right mb-4">מובילי הנושאים (השבוע)</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Object.values(SUBJECTS).filter(s => s.practice).map(subject => (
                 leaders[subject.id] ? 
@@ -106,8 +116,8 @@ const TopicLeaders = ({ leaders }) => (
 
 export default function Leaderboard({ currentUser }) {
     const [allTimeUsers, setAllTimeUsers] = useState<LeaderboardUser[]>([]);
-    const [dailyTopLeader, setDailyTopLeader] = useState<LeaderboardUser | null>(null);
-    const [weeklyTopLeader, setWeeklyTopLeader] = useState<LeaderboardUser | null>(null);
+    const [dailyTopLeader, setDailyTopLeader] = useState<{username: string, score: number} | null>(null);
+    const [weeklyTopLeader, setWeeklyTopLeader] = useState<{username: string, score: number} | null>(null);
     const [topicLeaders, setTopicLeaders] = useState<Record<string, { username: string, score: number }>>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -128,45 +138,47 @@ export default function Leaderboard({ currentUser }) {
                         username: doc.id,
                         score: data.score || 0,
                         scoresBySubject: data.scoresBySubject || {},
-                        lastPlayed: data.lastPlayed || null,
+                        dailyStats: data.dailyStats,
+                        weeklyStats: data.weeklyStats,
                     });
                 });
 
-                const allUsers = userList.map(username => scoresMap.get(username) || {
+                const allUsers: LeaderboardUser[] = userList.map(username => scoresMap.get(username) || {
                     id: username,
                     username: username,
                     score: 0,
                     scoresBySubject: {},
-                    lastPlayed: null,
                 });
 
                 // All-Time Leaders
                 const sortedAllTime = [...allUsers].sort((a, b) => b.score - a.score);
                 setAllTimeUsers(sortedAllTime);
 
-                // Time-based Top Leaders
-                const todayStart = getStartOfDay(new Date());
-                const weekStart = getStartOfWeek(new Date());
+                const today = new Date();
+                const currentDate = formatDate(today);
+                const currentWeekId = formatDate(getStartOfWeek(today));
 
-                const dailyActiveUsers = allUsers.filter(u => u.lastPlayed && u.lastPlayed.toDate() >= todayStart);
+                // Daily Top Leader
+                const dailyActiveUsers = allUsers.filter(u => u.dailyStats?.periodId === currentDate);
                 if (dailyActiveUsers.length > 0) {
-                    const sortedDaily = dailyActiveUsers.sort((a,b) => b.score - a.score);
-                    setDailyTopLeader(sortedDaily[0]);
+                    const sortedDaily = dailyActiveUsers.sort((a,b) => b.dailyStats!.score - a.dailyStats!.score);
+                    setDailyTopLeader({ username: sortedDaily[0].username, score: sortedDaily[0].dailyStats!.score });
                 } else {
                     const randomUser = userList[Math.floor(Math.random() * userList.length)];
-                    setDailyTopLeader({ id: randomUser, username: randomUser, score: 0, lastPlayed: null });
+                    setDailyTopLeader({ username: randomUser, score: 0 });
                 }
 
-                const weeklyActiveUsers = allUsers.filter(u => u.lastPlayed && u.lastPlayed.toDate() >= weekStart);
+                // Weekly Top Leader
+                const weeklyActiveUsers = allUsers.filter(u => u.weeklyStats?.periodId === currentWeekId);
                  if (weeklyActiveUsers.length > 0) {
-                    const sortedWeekly = weeklyActiveUsers.sort((a,b) => b.score - a.score);
-                    setWeeklyTopLeader(sortedWeekly[0]);
+                    const sortedWeekly = weeklyActiveUsers.sort((a,b) => b.weeklyStats!.score - a.weeklyStats!.score);
+                    setWeeklyTopLeader({ username: sortedWeekly[0].username, score: sortedWeekly[0].weeklyStats!.score });
                 } else {
                     const randomUser = userList[Math.floor(Math.random() * userList.length)];
-                    setWeeklyTopLeader({ id: randomUser, username: randomUser, score: 0, lastPlayed: null });
+                    setWeeklyTopLeader({ username: randomUser, score: 0 });
                 }
 
-                // Topic Leaders
+                // Weekly Topic Leaders
                 const leadersByTopic: Record<string, { username: string, score: number }> = {};
                 const practiceSubjects = Object.values(SUBJECTS).filter(s => s.practice);
 
@@ -175,10 +187,12 @@ export default function Leaderboard({ currentUser }) {
                     let maxScore = -1;
 
                     allUsers.forEach(user => {
-                        const userScore = user.scoresBySubject?.[subject.id] || 0;
-                        if (userScore > maxScore) {
-                            maxScore = userScore;
-                            topUser = user;
+                        if(user.weeklyStats?.periodId === currentWeekId) {
+                            const userScore = user.weeklyStats.scoresBySubject?.[subject.id] || 0;
+                            if (userScore > maxScore) {
+                                maxScore = userScore;
+                                topUser = user;
+                            }
                         }
                     });
 

@@ -4,7 +4,31 @@ import { db, firebase } from '../firebase/config.ts';
 const CURRENT_USER_KEY = 'midpointMasterCurrentUser';
 const FIRESTORE_COLLECTION = 'scores_aloni_yitzhak_10_4';
 
-// Define the user type
+// --- Helper Functions ---
+const getStartOfWeek = (date: Date): Date => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // MONDAY start
+    d.setDate(diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+
+const formatDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+
+// --- Type Definitions ---
+interface UserStats {
+  periodId: string; // YYYY-MM-DD for daily, or date of start of week for weekly
+  score: number;
+  scoresBySubject: Record<string, number>;
+}
+
 interface User {
   uid: string;
   username: string;
@@ -12,6 +36,8 @@ interface User {
   completedExercises: number;
   scoresBySubject?: Record<string, number>;
   lastPlayed?: firebase.firestore.Timestamp;
+  dailyStats?: UserStats;
+  weeklyStats?: UserStats;
 }
 
 export function useUser() {
@@ -34,10 +60,10 @@ export function useUser() {
           completedExercises: userData?.completedExercises || 0,
           scoresBySubject: userData?.scoresBySubject || {},
           lastPlayed: userData?.lastPlayed || null,
+          dailyStats: userData?.dailyStats,
+          weeklyStats: userData?.weeklyStats,
         });
       } else {
-        // User exists in the list but not in Firestore yet.
-        // Create a new local user object. It will be saved to Firestore on first update.
         setUser({
           uid: username,
           username: username,
@@ -49,7 +75,6 @@ export function useUser() {
       }
     } catch (error) {
       console.error("Error loading user data from Firestore:", error);
-      // Logout on error to prevent inconsistent state
       setUser(null);
       localStorage.removeItem(CURRENT_USER_KEY);
     }
@@ -84,27 +109,61 @@ export function useUser() {
 
   const updateUser = useCallback((scoreToAdd: number, exercisesToAdd: number, subjectId: string) => {
     if (!user) return;
-
-    const updatedUser: User = {
-      ...user,
-      score: user.score + scoreToAdd,
-      completedExercises: user.completedExercises + exercisesToAdd,
-      scoresBySubject: {
-          ...(user.scoresBySubject || {}),
-          [subjectId]: ((user.scoresBySubject || {})[subjectId] || 0) + scoreToAdd
-      }
-    };
     
+    const today = new Date();
+    const currentDate = formatDate(today);
+    const currentWeekId = formatDate(getStartOfWeek(today));
+
+    // Optimistically update local state for immediate UI feedback
+    const updatedUser: User = { ...user };
+    updatedUser.score += scoreToAdd;
+    updatedUser.completedExercises += exercisesToAdd;
+    updatedUser.scoresBySubject = { ...updatedUser.scoresBySubject, [subjectId]: (updatedUser.scoresBySubject?.[subjectId] || 0) + scoreToAdd };
+    
+    // Daily
+    if (updatedUser.dailyStats?.periodId !== currentDate) {
+        updatedUser.dailyStats = { periodId: currentDate, score: scoreToAdd, scoresBySubject: { [subjectId]: scoreToAdd }};
+    } else {
+        updatedUser.dailyStats.score += scoreToAdd;
+        updatedUser.dailyStats.scoresBySubject[subjectId] = (updatedUser.dailyStats.scoresBySubject[subjectId] || 0) + scoreToAdd;
+    }
+    // Weekly
+    if (updatedUser.weeklyStats?.periodId !== currentWeekId) {
+        updatedUser.weeklyStats = { periodId: currentWeekId, score: scoreToAdd, scoresBySubject: { [subjectId]: scoreToAdd }};
+    } else {
+        updatedUser.weeklyStats.score += scoreToAdd;
+        updatedUser.weeklyStats.scoresBySubject[subjectId] = (updatedUser.weeklyStats.scoresBySubject[subjectId] || 0) + scoreToAdd;
+    }
     setUser(updatedUser);
 
-    // Update Firestore with FieldValue for atomic operations
-    db.collection(FIRESTORE_COLLECTION).doc(updatedUser.username).set({
+    // --- Prepare Firestore update object ---
+    const firestoreUpdate: { [key: string]: any } = {
       score: firebase.firestore.FieldValue.increment(scoreToAdd),
       completedExercises: firebase.firestore.FieldValue.increment(exercisesToAdd),
       [`scoresBySubject.${subjectId}`]: firebase.firestore.FieldValue.increment(scoreToAdd),
       lastPlayed: firebase.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true }).catch(error => {
+    };
+
+    // Handle daily stats update/reset
+    if (user.dailyStats?.periodId !== currentDate) {
+      firestoreUpdate.dailyStats = { periodId: currentDate, score: scoreToAdd, scoresBySubject: { [subjectId]: scoreToAdd } };
+    } else {
+      firestoreUpdate['dailyStats.score'] = firebase.firestore.FieldValue.increment(scoreToAdd);
+      firestoreUpdate[`dailyStats.scoresBySubject.${subjectId}`] = firebase.firestore.FieldValue.increment(scoreToAdd);
+    }
+    
+    // Handle weekly stats update/reset
+    if (user.weeklyStats?.periodId !== currentWeekId) {
+      firestoreUpdate.weeklyStats = { periodId: currentWeekId, score: scoreToAdd, scoresBySubject: { [subjectId]: scoreToAdd } };
+    } else {
+      firestoreUpdate['weeklyStats.score'] = firebase.firestore.FieldValue.increment(scoreToAdd);
+      firestoreUpdate[`weeklyStats.scoresBySubject.${subjectId}`] = firebase.firestore.FieldValue.increment(scoreToAdd);
+    }
+
+    // --- Execute atomic update in Firestore ---
+    db.collection(FIRESTORE_COLLECTION).doc(user.username).set(firestoreUpdate, { merge: true }).catch(error => {
       console.error("Failed to update user data in Firestore:", error);
+      // Potentially revert optimistic update here
     });
   }, [user]);
 
