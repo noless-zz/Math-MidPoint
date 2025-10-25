@@ -51,7 +51,8 @@ export type QuestionType =
   'FIND_ENDPOINT_MCQ' | 'IDENTIFY_COORDINATES' |
   'CALCULATE_AREA' | 'CALCULATE_SLOPE' | 
   'CALCULATE_DISTANCE' | 'FIND_PERPENDICULAR_SLOPE' |
-  'FIND_INTERSECTION_POINT' | 'SOLVE_EQUATION_VARIABLE_DENOMINATOR';
+  'FIND_INTERSECTION_POINT' | 'SOLVE_EQUATION_VARIABLE_DENOMINATOR' |
+  'IDENTIFY_QUADRANT' | 'FIND_LINE_EQUATION';
 
 export interface LineEquation {
     m: number;
@@ -68,16 +69,21 @@ export interface EquationOperator {
     type: 'operator';
     value: string; // '+', '-', '='
 }
-export interface EquationNumber {
-    type: 'number';
-    value: number;
+export interface EquationTerm {
+    type: 'term';
+    value: string;
 }
 
-export type EquationPart = EquationFraction | EquationOperator | EquationNumber;
+export type EquationPart = EquationFraction | EquationOperator | EquationTerm;
 
 export interface EquationSolution {
   value: number | null; // null for "no solution"
   domain: number[]; // e.g., if x != 2 and x != -3, domain will be [2, -3]
+}
+
+export interface LineEquationSolution {
+    m: number;
+    b: number;
 }
 
 export interface Question {
@@ -86,11 +92,12 @@ export interface Question {
   points?: { A?: Point; B?: Point; C?: Point; M?: Point };
   lines?: LineEquation[];
   equationParts?: EquationPart[];
-  solution: Point | number | EquationSolution;
+  // Fix: Add `string` to the solution type. This is required for question types like IDENTIFY_QUADRANT where the solution is text-based.
+  solution: Point | number | EquationSolution | LineEquationSolution | string;
   explanation: string; // This will now be the first-step hint
   detailedExplanation: string[]; // This is the full, step-by-step solution
   difficulty: Difficulty['id'];
-  options?: (Point | number)[];
+  options?: (Point | number | string)[];
 }
 
 // This type can be expanded to include other AI models if needed

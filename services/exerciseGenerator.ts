@@ -1,4 +1,4 @@
-import { Point, Question, QuestionType, Difficulty, SUBJECTS, LineEquation, EquationPart, EquationSolution } from '../types.ts';
+import { Point, Question, QuestionType, Difficulty, SUBJECTS, LineEquation, EquationPart, EquationSolution, LineEquationSolution } from '../types.ts';
 
 // Helper function to generate a random integer between min and max (inclusive)
 function getRandomInt(min: number, max: number): number {
@@ -33,16 +33,16 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         
         const denominator = b === 0 ? 'x' : `x ${b > 0 ? '+' : '-'} ${Math.abs(b)}`;
         solution = x_sol;
-        explanation = `כופלים את שני אגפי המשוואה במכנה (${denominator}) כדי לבטל את השבר.`;
+        explanation = `כדי לפתור, יש לבודד את הנעלם x.`;
         detailedExplanation = [
-            `תחום הגדרה: המכנה לא יכול להיות אפס, לכן ${denominator} ≠ 0, כלומר x ≠ ${-b}.`,
-            `כופלים את שני אגפי המשוואה במכנה: ${a} = ${c}(${denominator})`,
+            `תחום הגדרה: המכנה לא יכול להיות אפס, לכן x ≠ ${-b}.`,
+            `כופלים את שני אגפי המשוואה במכנה (${denominator}): ${a} = ${c}(${denominator})`,
             `פותחים סוגריים: ${a} = ${c}x ${c*b >= 0 ? '+' : '-'} ${Math.abs(c*b)}`,
             `מעבירים אגפים כדי לבודד את x: ${a - (c*b)} = ${c}x`,
-            `מחלקים במקדם של x: x = ${solution}`,
+            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
             `הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
-        equationParts = [ { type: 'fraction', numerator: a.toString(), denominator }, { type: 'operator', value: '=' }, { type: 'number', value: c } ];
+        equationParts = [ { type: 'fraction', numerator: a.toString(), denominator }, { type: 'operator', value: '=' }, { type: 'term', value: c.toString() } ];
     };
 
     // Template 2: (ax+b)/(cx+d) = e (Medium)
@@ -61,19 +61,19 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         const numStr = `${a}x ${b >= 0 ? '+' : '-'} ${Math.abs(b)}`;
         const denStr = `${c}x ${d >= 0 ? '+' : '-'} ${Math.abs(d)}`;
         solution = x_sol;
-        explanation = `כדי לבטל את המכנה, כופלים את שני האגפים ב-${denStr}.`;
+        explanation = `כדי לבטל את המכנה, יש לכפול את שני האגפים ב-${denStr}.`;
         detailedExplanation = [
-            `תחום הגדרה: המכנה לא יכול להיות אפס, לכן ${denStr} ≠ 0, כלומר x ≠ ${(-d/c).toFixed(2)}.`,
+            `תחום הגדרה: המכנה לא יכול להיות אפס, לכן x ≠ ${(-d/c).toFixed(2)}.`,
             `כופלים את שני האגפים במכנה: ${numStr} = ${e}(${denStr})`,
             `פותחים סוגריים: ${numStr} = ${e*c}x ${e*d >= 0 ? '+' : '-'} ${Math.abs(e*d)}`,
             `מעבירים איברים עם x לאגף אחד ומספרים לאגף השני: ${a - e*c}x = ${e*d - b}`,
-            `מחלקים במקדם של x: x = ${solution}`,
+            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
             `הפתרון תקין ונמצא בתחום ההגדרה.`,
         ];
-        equationParts = [ { type: 'fraction', numerator: numStr, denominator: denStr }, { type: 'operator', value: '=' }, { type: 'number', value: e } ];
+        equationParts = [ { type: 'fraction', numerator: numStr, denominator: denStr }, { type: 'operator', value: '=' }, { type: 'term', value: e.toString() } ];
     };
 
-    // Template 3: x/a = b/(x+c) -> leads to quadratic (Medium/Hard)
+    // Template 3: x/a = b/(x+c) -> leads to quadratic (Hard)
     const template3 = () => {
         const x1 = getRandomInt(-5, 5);
         let x2;
@@ -88,42 +88,26 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         if (a_times_b % a !== 0) a = 1;
         const b = a_times_b / a;
 
-        // Equation: x(x+c) = ab => x^2 + cx = ab => x^2 + cx - ab = 0
-        // Our case: x/a = b/(x-c)
-        const x_sol = Math.random() > 0.5 ? x1 : x2;
-        let domain_val = c;
-        if (x_sol === domain_val) { // solution is extraneous, pick the other one
-            solution = (x1 === domain_val) ? x2 : x1;
-        } else {
-            solution = x_sol;
-        }
-
         const denStr = `x ${c > 0 ? '+' : '-'} ${Math.abs(c)}`;
-        explanation = `מבצעים כפל בהצלבה כדי לקבל משוואה ריבועית.`;
+        const domain = [-c];
+        let valid_solutions = [x1, x2].filter(s => !domain.includes(s));
+
+        if (valid_solutions.length !== 1) {
+            return template2(); // fallback to simpler hard if we get 0 or 2 solutions
+        }
+        const valid_solution = valid_solutions[0];
+        
+        solution = { value: valid_solution, domain: Array.from(new Set(domain)) };
+        explanation = `יש לבצע כפל בהצלבה כדי לקבל משוואה ריבועית.`;
         detailedExplanation = [
-            `תחום הגדרה: x ≠ ${-c}.`,
-            `כפל בהצלבה נותן: x(${denStr}) = ${a*b}`,
-            `פותחים סוגריים: x² ${c >= 0 ? '+' : '-'} ${Math.abs(c)}x = ${a*b}`,
-            `מעבירים הכל לאגף אחד: x² ${c >= 0 ? '+' : '-'} ${Math.abs(c)}x ${-a*b >= 0 ? '+' : '-'} ${Math.abs(-a*b)} = 0`,
-            `הפתרונות למשוואה הריבועית הם ${x1} ו-${x2}.`,
-            `הפתרון ${-c} נפסל בגלל תחום ההגדרה, לכן הפתרון היחיד הוא x = ${solution}.`
+            `תחום הגדרה: x ≠ ${-c}`,
+            `מבצעים כפל בהצלבה: x(${denStr}) = ${a*b}`,
+            `פותחים סוגריים ומסדרים למשוואה ריבועית: x² ${c >= 0 ? '+' : '-'} ${Math.abs(c)}x - ${a*b} = 0`,
+            `הפתרונות למשוואה הריבועית הם: x = ${x1} או x = ${x2}`,
+            `בודקים את הפתרונות מול תחום ההגדרה: הפתרון x=${-c} נפסל.`,
+            `הפתרון היחיד התקין הוא: x = ${valid_solution}`
         ];
         equationParts = [ { type: 'fraction', numerator: 'x', denominator: a.toString() }, { type: 'operator', value: '=' }, { type: 'fraction', numerator: b.toString(), denominator: denStr } ];
-
-        if (difficulty === 'hard') {
-            const domain = [-c];
-            let valid_solution: number | null = null;
-            if (x1 !== -c) valid_solution = x1;
-            if (x2 !== -c && valid_solution === null) valid_solution = x2;
-            if (x1 !== -c && x2 !== -c && x1 !== x2) { // both valid, too complex
-                return template2(); // fallback to simpler hard
-            }
-            if (x1 === -c && x2 === -c) valid_solution = null; // No solution
-            
-            solution = { value: valid_solution, domain: Array.from(new Set(domain)) };
-            detailedExplanation.pop();
-            detailedExplanation.push(`הפתרון ${valid_solution === null ? 'היחיד' : ''} ${-c} נפסל על ידי תחום ההגדרה. ${valid_solution !== null ? `לכן הפתרון הוא x = ${valid_solution}` : 'לכן למשוואה אין פתרון.'}`);
-        }
     };
     
     // Template 4: a/(x+b) + c/(x+d) = e (Hard)
@@ -133,19 +117,23 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         do { b = getRandomInt(-8, 8); } while (x_sol + b === 0);
         do { d = getRandomInt(-8, 8); } while (x_sol + d === 0 || b === d);
 
-        const a = getRandomInt(1, 5) * (x_sol + b);
-        const c = getRandomInt(1, 5) * (x_sol + d);
-        const e = (a / (x_sol + b)) + (c / (x_sol + d));
+        const a_val = getRandomInt(1, 5);
+        const c_val = getRandomInt(1, 5);
+        const e = a_val + c_val; // simplified for nicer numbers
+        
+        const a = a_val * (x_sol + b);
+        const c = c_val * (x_sol + d);
 
         const den1Str = `x ${b > 0 ? '+' : '-'} ${Math.abs(b)}`;
         const den2Str = `x ${d > 0 ? '+' : '-'} ${Math.abs(d)}`;
         solution = { value: x_sol, domain: [-b, -d].sort((a,b)=>a-b) };
         explanation = `יש למצוא מכנה משותף, לכפול בו את כל המשוואה ולפתור.`;
+        const domainString = `x ≠ ${solution.domain[0]} וגם x ≠ ${solution.domain[1]}`;
         detailedExplanation = [
-            `תחום ההגדרה הוא: x ≠ ${-b} וגם x ≠ ${-d}.`,
-            `המכנה המשותף הוא (${den1Str})(${den2Str}).`,
+            `תחום ההגדרה הוא: ${domainString}`,
+            `המכנה המשותף הוא: (${den1Str})(${den2Str})`,
             `כופלים את המשוואה במכנה המשותף ומקבלים: ${a}(${den2Str}) + ${c}(${den1Str}) = ${e}(${den1Str})(${den2Str})`,
-            `לאחר פתיחת סוגריים וכינוס איברים, הפתרון שמתקבל הוא x = ${x_sol}.`,
+            `לאחר פתיחת סוגריים וכינוס איברים, הפתרון שמתקבל הוא: x = ${x_sol}`,
             `הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
         equationParts = [
@@ -153,25 +141,175 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
              { type: 'operator', value: '+' },
              { type: 'fraction', numerator: c.toString(), denominator: den2Str },
              { type: 'operator', value: '=' },
-             { type: 'number', value: e }
+             { type: 'term', value: e.toString() }
         ];
     };
+    
+     // Template 5: Cross-multiplication like a/(x+b) = c/(x+d) (Medium)
+    const template5 = () => {
+        const x_sol = getRandomInt(-8, 8);
+        let b = getRandomInt(-8, 8);
+        if (x_sol + b === 0) b++;
+        let d = getRandomInt(-8, 8);
+        if (x_sol + d === 0) d++;
+        if (b === d) d++;
+        
+        const c = getRandomInt(1, 5) * (Math.random() > 0.5 ? 1 : -1);
+        const a_float = c * (x_sol + b) / (x_sol + d);
+        
+        if (Math.abs(a_float) > 20 || a_float % 1 !== 0 || a_float === 0) { // retry if 'a' is not a nice number
+            return template2();
+        }
+        const a = a_float;
+
+        const den1Str = `x ${b >= 0 ? '+' : '-'} ${Math.abs(b)}`;
+        const den2Str = `x ${d >= 0 ? '+' : '-'} ${Math.abs(d)}`;
+        solution = x_sol;
+        explanation = `כדי לפתור, יש לבצע כפל בהצלבה כדי להיפטר מהמכנים.`;
+        detailedExplanation = [
+            `תחום הגדרה: x ≠ ${-b} וגם x ≠ ${-d}.`,
+            `מבצעים כפל בהצלבה: ${a}(${den2Str}) = ${c}(${den1Str})`,
+            `פותחים סוגריים: ${a}x ${a*d >= 0 ? '+' : '-'} ${Math.abs(a*d)} = ${c}x ${c*b >= 0 ? '+' : '-'} ${Math.abs(c*b)}`,
+            `מעבירים אגפים: ${a - c}x = ${c*b - a*d}`,
+            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
+            `הפתרון תקין ונמצא בתחום ההגדרה.`
+        ];
+        equationParts = [
+            { type: 'fraction', numerator: a.toString(), denominator: den1Str },
+            { type: 'operator', value: '=' },
+            { type: 'fraction', numerator: c.toString(), denominator: den2Str }
+        ];
+    };
+
+    // Template 6: a/(x-b) + c/(b-x) = d (Medium)
+    const template6 = () => {
+        const x_sol = getRandomInt(-10, 10);
+        let b = getRandomInt(-10, 10);
+        if (x_sol - b === 0) b++;
+
+        const d = getRandomInt(1, 5) * (Math.random() > 0.5 ? 1 : -1);
+        const a_minus_c = d * (x_sol - b);
+        const a = a_minus_c + getRandomInt(1,10);
+        const c = a - a_minus_c;
+
+        const den1Str = `x ${-b >= 0 ? '+' : '-'} ${Math.abs(-b)}`;
+        const den2Str = `${b} - x`;
+
+        solution = x_sol;
+        explanation = `שים לב שניתן להפוך את המכנה השני ולהחליף את הסימן שלפני השבר.`;
+        detailedExplanation = [
+            `תחום הגדרה: x ≠ ${b}.`,
+            `שים לב שהמכנה השני הוא הנגדי של הראשון: ${den2Str} = -(${den1Str}).`,
+            `לכן ניתן לרשום את המשוואה מחדש: ${a}/(${den1Str}) - ${c}/(${den1Str}) = ${d}`,
+            `מאחדים שברים: (${a-c})/(${den1Str}) = ${d}`,
+            `כופלים במכנה: ${a_minus_c} = ${d}(${den1Str})`,
+            `פותרים ומקבלים: x = ${solution}`,
+            `הפתרון תקין ונמצא בתחום ההגדרה.`
+        ];
+        equationParts = [
+            { type: 'fraction', numerator: a.toString(), denominator: den1Str },
+            { type: 'operator', value: '+' },
+            { type: 'fraction', numerator: c.toString(), denominator: den2Str },
+            { type: 'operator', value: '=' },
+            { type: 'term', value: d.toString() }
+        ];
+    };
+    
+    // Template 7: x + a/(x-b) = c (Hard, extraneous solution)
+    const template7 = () => {
+        const x1 = getRandomInt(-6, 6); // valid solution
+        const x2 = getRandomInt(-6, 6); // extraneous solution
+        if (x1 === x2) return template4(); // Fallback if solutions are the same
+
+        const b = x2; // Denominator is (x-b), so x=b is forbidden.
+        const c = getRandomInt(-5, 5);
+
+        // From x + a/(x-b) = c => x(x-b) + a = c(x-b) => x^2 -bx + a = cx - cb
+        // x^2 - (b+c)x + (a+cb) = 0
+        // We want roots to be x1 and x2.
+        // Sum of roots: x1+x2 = b+c
+        // Product of roots: x1*x2 = a+cb
+        const new_c = x1 + x2 - b;
+        const a = x1*x2 - new_c*b;
+
+        if (a === 0 || b === 0) return template4(); // fallback if params are zero
+        
+        const denStr = `x ${-b >= 0 ? '+' : '-'} ${Math.abs(-b)}`;
+
+        solution = { value: x1, domain: [b] };
+        explanation = `לאחר פישוט המשוואה מתקבלת משוואה ריבועית, יש לבדוק את הפתרונות מול תחום ההגדרה.`;
+        detailedExplanation = [
+            `תחום הגדרה: x ≠ ${b}.`,
+            `כופלים את כל המשוואה במכנה (${denStr}): x(${denStr}) + ${a} = ${new_c}(${denStr})`,
+            `פותחים סוגריים ומסדרים למשוואה ריבועית: x² - (${b+new_c})x + (${a + new_c*b}) = 0`,
+            `הפתרונות למשוואה הריבועית הם: x = ${x1} או x = ${x2}`,
+            `בודקים את הפתרונות מול תחום ההגדרה: הפתרון x=${x2} נפסל.`,
+            `הפתרון היחיד התקין הוא: x = ${x1}`
+        ];
+        equationParts = [
+            { type: 'term', value: 'x' },
+            { type: 'operator', value: '+' },
+            { type: 'fraction', numerator: a.toString(), denominator: denStr },
+            { type: 'operator', value: '=' },
+            { type: 'term', value: new_c.toString() }
+        ];
+    };
+    
+    // Template 8: Quadratic in 1/(x-b) (Hard)
+    const template8 = () => {
+        let b = getRandomInt(-7, 7);
+        // a*u^2 + c*u - d_val = 0
+        const u1 = getRandomInt(-4, 4);
+        let u2 = getRandomInt(-4, 4);
+        if (u1 === 0) return template4(); 
+        if (u1 === u2) u2++;
+        if (u2 === 0) u2++;
+
+        const a = 1;
+        const c = -(u1 + u2);
+        const d_val = -(u1 * u2);
+        
+        const x_sol_val = 1/u1 + b;
+        if (x_sol_val % 1 !== 0) {
+            return template7(); // fallback
+        }
+        
+        const domain = [b];
+        solution = { value: x_sol_val, domain };
+        
+        const den = `x ${-b >= 0 ? '+' : '-'} ${Math.abs(-b)}`;
+        explanation = `זוהי משוואה ריבועית עבור הביטוי 1/(${den}).`;
+        detailedExplanation = [
+            `תחום הגדרה: x ≠ ${b}.`,
+            `אם נסמן u = 1/(${den}), נקבל את המשוואה הריבועית: ${a}u² + ${c}u - ${d_val} = 0`,
+            `פתרונות המשוואה הריבועית הם: u = ${u1} או u = ${u2}`,
+            `נחזור ל-x. עבור u = ${u1}, נקבל: 1/(${den}) = ${u1}`,
+            `מכאן, x - ${b} = ${1/u1}, והפתרון הוא: x = ${x_sol_val}`,
+            `עבור u = ${u2}, נקבל פתרון נוסף שאינו שלם. הפתרון התקין הוא ${x_sol_val}.`
+        ];
+        equationParts = [
+            { type: 'fraction', numerator: a.toString(), denominator: `(${den})²` },
+            { type: 'operator', value: '+' },
+            { type: 'fraction', numerator: c.toString(), denominator: den },
+            { type: 'operator', value: '=' },
+            { type: 'term', value: d_val.toString() }
+        ];
+    };
+
 
     if (difficulty === 'easy') {
         template1();
     } else if (difficulty === 'medium') {
-        if (Math.random() > 0.5) {
-            template2();
-        } else {
-            template3();
-        }
+        const rand = Math.random();
+        if (rand < 0.33) template2();
+        else if (rand < 0.66) template5();
+        else template6();
     } else { // hard
         const rand = Math.random();
-        if (rand < 0.5) {
-            template3();
-        } else {
-            template4();
-        }
+        if (rand < 0.25) template3();
+        else if (rand < 0.5) template4();
+        else if (rand < 0.75) template7();
+        else template8();
     }
 
     return {
@@ -454,6 +592,105 @@ function generateIntersectionQuestion(difficulty: Difficulty['id']): Question {
     };
 }
 
+function generateLineEquationQuestion(difficulty: Difficulty['id']): Question {
+    let p1: Point, p2: Point, m: number, b: number;
+    let range = 8;
+    if (difficulty === 'medium') range = 12;
+    if (difficulty === 'hard') range = 15;
+
+    do {
+        p1 = { x: getRandomInt(-range, range), y: getRandomInt(-range, range) };
+        p2 = { x: getRandomInt(-range, range), y: getRandomInt(-range, range) };
+        
+    } while (p1.x === p2.x || (p1.x === p2.x && p1.y === p2.y));
+
+    m = (p2.y - p1.y) / (p2.x - p1.x);
+    b = p1.y - m * p1.x;
+
+    if (difficulty !== 'hard') {
+        if (m % 1 !== 0 || b % 1 !== 0) {
+            const new_m = getRandomInt(-4, 4);
+            const new_b = getRandomInt(-10, 10);
+            
+            p1.x = getRandomInt(-range, range);
+            p1.y = new_m * p1.x + new_b;
+            
+            do {
+                p2.x = getRandomInt(-range, range);
+            } while (p2.x === p1.x);
+            p2.y = new_m * p2.x + new_b;
+            
+            m = new_m;
+            b = new_b;
+        }
+    }
+
+    return {
+        type: 'FIND_LINE_EQUATION',
+        question: `מצא/י את משוואת הישר (y = mx + b) העובר דרך הנקודות A(${p1.x}, ${p1.y}) ו-B(${p2.x}, ${p2.y}).`,
+        points: { A: p1, B: p2 },
+        solution: { m, b },
+        explanation: `ראשית, יש למצוא את השיפוע (m), ולאחר מכן להציב אותו ואחת הנקודות בנוסחת הישר כדי למצוא את b.`,
+        detailedExplanation: [
+            `נחשב את השיפוע: m = (${p2.y} - ${p1.y}) / (${p2.x} - ${p1.x}) = ${p2.y - p1.y} / ${p2.x - p1.x} = ${m.toFixed(2)}`,
+            `נציב את השיפוע ואת נקודה A במשוואת הישר y = mx + b: ${p1.y} = (${m.toFixed(2)}) * ${p1.x} + b`,
+            `נפתור עבור b: ${p1.y} = ${(m * p1.x).toFixed(2)} + b  =>  b = ${b.toFixed(2)}`,
+            `משוואת הישר היא: y = ${m.toFixed(2)}x + ${b.toFixed(2)}`
+        ],
+        difficulty,
+    };
+}
+
+function generateQuadrantQuestion(difficulty: Difficulty['id']): Question {
+    let range = 10;
+    if (difficulty === 'hard') range = 20;
+
+    let x = getRandomInt(-range, range);
+    let y = getRandomInt(-range, range);
+
+    if (difficulty === 'easy' && (x === 0 || y === 0)) {
+        x = x === 0 ? getRandomInt(1, range) * (Math.random() > 0.5 ? 1 : -1) : x;
+        y = y === 0 ? getRandomInt(1, range) * (Math.random() > 0.5 ? 1 : -1) : y;
+    }
+
+    let solution: string;
+    const options: string[] = ['רביע ראשון', 'רביע שני', 'רביע שלישי', 'רביע רביעי', 'על ציר ה-X', 'על ציר ה-Y'];
+
+    if (x > 0 && y > 0) solution = options[0];
+    else if (x < 0 && y > 0) solution = options[1];
+    else if (x < 0 && y < 0) solution = options[2];
+    else if (x > 0 && y < 0) solution = options[3];
+    else if (y === 0 && x !== 0) solution = options[4];
+    else if (x === 0 && y !== 0) solution = options[5];
+    else { 
+        x = getRandomInt(1, range);
+        y = getRandomInt(1, range);
+        solution = options[0];
+    }
+    
+    let finalOptions : string[];
+    if (difficulty === 'easy') {
+        finalOptions = shuffleArray(options.slice(0, 4));
+    } else {
+        const distractors = options.filter(o => o !== solution);
+        finalOptions = shuffleArray([solution, ...shuffleArray(distractors).slice(0, 3)]);
+    }
+    
+    return {
+        type: 'IDENTIFY_QUADRANT',
+        question: `באיזה רביע או על איזה ציר נמצאת הנקודה A(${x}, ${y})?`,
+        points: { A: { x, y } },
+        solution: solution,
+        explanation: `רביע ראשון (x>0, y>0), שני (x<0, y>0), שלישי (x<0, y<0), רביעי (x>0, y<0).`,
+        detailedExplanation: [
+            `שיעור ה-x של הנקודה הוא ${x}, שהוא מספר ${x > 0 ? 'חיובי' : (x < 0 ? 'שלילי' : 'אפס')}.`,
+            `שיעור ה-y של הנקודה הוא ${y}, שהוא מספר ${y > 0 ? 'חיובי' : (y < 0 ? 'שלילי' : 'אפס')}.`,
+            `לפיכך, הנקודה נמצאת ב: ${solution}.`
+        ],
+        difficulty,
+        options: finalOptions,
+    };
+}
 
 // --- EXISTING GENERATORS (UNCHANGED) ---
 function generateAreaQuestion(difficulty: Difficulty['id']): Question {
@@ -482,7 +719,7 @@ function generateAreaQuestion(difficulty: Difficulty['id']): Question {
     };
 }
 
-function generateCoordinateSystemQuestion(difficulty: Difficulty['id']): Question {
+function generateIdentifyCoordinatesQuestion(difficulty: Difficulty['id']): Question {
     let range = 12, numPoints = 1;
     if (difficulty === 'easy') { range = 8; numPoints = getRandomInt(1, 2); }
     if (difficulty === 'medium') { range = 10; numPoints = getRandomInt(2, 3); }
@@ -506,12 +743,29 @@ function generateCoordinateSystemQuestion(difficulty: Difficulty['id']): Questio
     };
 }
 
+
+// --- ROUTER GENERATORS ---
+function generateCoordinateSystemQuestion(difficulty: Difficulty['id']): Question {
+    if (difficulty === 'easy' || Math.random() < 0.5) {
+        return generateIdentifyCoordinatesQuestion(difficulty);
+    }
+    return generateQuadrantQuestion(difficulty);
+}
+
+function generateStraightLineQuestion(difficulty: Difficulty['id']): Question {
+    if (Math.random() < 0.5) {
+        return generateSlopeQuestion(difficulty);
+    }
+    return generateLineEquationQuestion(difficulty);
+}
+
+
 // --- MAIN GENERATOR ---
 const generators = {
     [SUBJECTS.MIDPOINT.id]: generateMidpointQuestion,
     [SUBJECTS.AREA_CALC.id]: generateAreaQuestion,
     [SUBJECTS.COORDINATE_SYSTEM.id]: generateCoordinateSystemQuestion,
-    [SUBJECTS.STRAIGHT_LINE.id]: generateSlopeQuestion,
+    [SUBJECTS.STRAIGHT_LINE.id]: generateStraightLineQuestion,
     [SUBJECTS.DISTANCE.id]: generateDistanceQuestion,
     [SUBJECTS.PERPENDICULAR_LINES.id]: generatePerpendicularSlopeQuestion,
     [SUBJECTS.LINE_INTERSECTION.id]: generateIntersectionQuestion,
