@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Question, Point, SUBJECTS, DIFFICULTY_LEVELS, Difficulty, QuestionType, LineEquation } from '../types.ts';
+import { Question, Point, SUBJECTS, DIFFICULTY_LEVELS, Difficulty, QuestionType, LineEquation, EquationPart } from '../types.ts';
 import { generateQuestion } from '../services/exerciseGenerator.ts';
 import CoordinatePlane from './CoordinatePlane.tsx';
 import { design } from '../constants/design_system.ts';
@@ -9,7 +9,12 @@ import { GoogleGenAI } from '@google/genai';
 // --- HELPER & VISUAL COMPONENTS (MOVED OUTSIDE) ---
 
 const ColoredText: React.FC<{ text: string }> = ({ text }) => {
+    // This regex looks for patterns like A(-1, 2) or M?
     const parts = text.split(/([A-Z]\(-?\d+,\s*-?\d+\)|[A-Z]\?)/g);
+    // This regex will not match equation strings, so they will be rendered as plain text, which is what we want.
+    if (parts.length <= 1) {
+        return <span dir="rtl">{text}</span>
+    }
     return (
         <span dir="rtl">
             {parts.map((part, index) => {
@@ -38,6 +43,24 @@ const SimpleFraction: React.FC<{ numerator: React.ReactNode; denominator: React.
         <span className="px-1">{denominator}</span>
     </div>
 );
+
+const EquationDisplay: React.FC<{ parts: EquationPart[] }> = ({ parts }) => (
+    <div dir="ltr" className="flex items-center justify-center gap-x-3 text-2xl font-mono my-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg flex-wrap">
+        {parts.map((part, index) => {
+            if (part.type === 'fraction') {
+                return <SimpleFraction key={index} numerator={<span>{part.numerator}</span>} denominator={<span>{part.denominator}</span>} />;
+            }
+            if (part.type === 'operator') {
+                return <span key={index} className="mx-1 font-bold">{part.value}</span>;
+            }
+            if (part.type === 'number') {
+                return <span key={index}>{part.value}</span>;
+            }
+            return null;
+        })}
+    </div>
+);
+
 
 const FormulaWithSigns: React.FC<{ values: (string | number)[] }> = ({ values }) => {
     const [val1, val2] = values.map(Number);
@@ -96,6 +119,12 @@ const GeneralFormulaHint: React.FC<{ type: QuestionType }> = ({ type }) => {
         case 'FIND_PERPENDICULAR_SLOPE':
             formula = <span>m<sub>1</sub> &middot; m<sub>2</sub> = -1</span>;
             break;
+        case 'SOLVE_EQUATION_VARIABLE_DENOMINATOR':
+             return (
+                <div className={`mt-4 p-4 rounded-lg text-center ${design.learn.formula}`}>
+                    <p className="font-bold text-lg">רמז: מצא/י מכנה משותף וכפול/י את כל המשוואה בו כדי להיפטר מהמכנים.</p>
+                </div>
+            );
         default:
             return null;
     }
@@ -272,13 +301,12 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
 const PracticeSession = ({ config, updateUser, onBack }) => {
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
     const [userAnswer, setUserAnswer] = useState<Partial<Point> | number | string | null>(null);
-    const [feedback, setFeedback] = useState<{ isCorrect: boolean; explanation: string; earnedScore: number } | null>(null);
+    const [feedback, setFeedback] = useState<{ isCorrect: boolean; detailedExplanation: string[]; earnedScore: number } | null>(null);
     const [attempts, setAttempts] = useState(0);
     const [hintLevel, setHintLevel] = useState(0); // 0: none, 1: formula, 2: full
     const [potentialScore, setPotentialScore] = useState(0);
     const [selectedMcq, setSelectedMcq] = useState<number | null>(null);
-    const [aiExplanation, setAiExplanation] = useState<{ text: string; image?: string } | null>(null);
-    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [currentHint, setCurrentHint] = useState<string | null>(null);
 
     const setupNewQuestion = useCallback((question: Question) => {
         setCurrentQuestion(question);
@@ -286,7 +314,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
         setUserAnswer(null);
         setAttempts(0);
         setSelectedMcq(null);
-        setAiExplanation(null);
+        setCurrentHint(null);
 
         const difficulty = DIFFICULTY_LEVELS[question.difficulty.toUpperCase()];
         const baseScore = Math.round(10 * difficulty.multiplier);
@@ -329,38 +357,24 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
         const newAttempts = attempts + 1;
 
         if (isCorrect) {
-            setFeedback({ isCorrect: true, explanation: currentQuestion.explanation, earnedScore: potentialScore });
+            setFeedback({ isCorrect: true, detailedExplanation: [currentQuestion.explanation], earnedScore: potentialScore });
             updateUser(potentialScore, 1);
+            setCurrentHint(null);
         } else { // Incorrect
             setAttempts(newAttempts);
             
-            let newHintLevel = hintLevel;
-            const difficulty = currentQuestion.difficulty;
-
-            if (difficulty === 'hard') {
-                if (newAttempts === 1) newHintLevel = 1;
-                if (newAttempts === 2) newHintLevel = 2;
-            }
-            if (difficulty === 'medium') {
-                if (newAttempts === 1) newHintLevel = 2;
-            }
-            setHintLevel(newHintLevel);
-            
-            const baseScore = Math.round(10 * DIFFICULTY_LEVELS[difficulty.toUpperCase()].multiplier);
             let newPotentialScore = potentialScore;
 
-            if (difficulty === 'hard') {
-                if (newHintLevel === 2) newPotentialScore = Math.round(baseScore * 0.5);
-                else if (newHintLevel === 1) newPotentialScore = Math.round(baseScore * 0.75);
-            } else if (difficulty === 'medium') {
-                if (newHintLevel === 2) newPotentialScore = 10;
-            } else { // easy
-                newPotentialScore = Math.max(5, baseScore - 3 * newAttempts);
+            if (newAttempts === 1) {
+                setCurrentHint(currentQuestion.explanation);
+                 newPotentialScore = Math.round(potentialScore * 0.75); // Reduce potential score on first hint
             }
+            
             setPotentialScore(newPotentialScore);
 
             if (newAttempts >= 3) {
-                 setFeedback({ isCorrect: false, explanation: currentQuestion.explanation, earnedScore: 0 });
+                 setFeedback({ isCorrect: false, detailedExplanation: currentQuestion.detailedExplanation, earnedScore: 0 });
+                 setCurrentHint(null); // Hide hint when full solution is shown
             }
         }
     };
@@ -375,15 +389,33 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
     };
 
     const getSubjectNameFromType = (type: QuestionType): string => {
+        if (type === 'SOLVE_EQUATION_VARIABLE_DENOMINATOR') {
+            return SUBJECTS.EQUATIONS_WITH_VARIABLE_DENOMINATOR.name;
+        }
         const subjectEntry = Object.values(SUBJECTS).find(s => type.toLowerCase().includes(s.id.split('_')[0]));
         return subjectEntry ? subjectEntry.name : 'שאלה כללית';
     };
     
     const renderHint = () => {
-        if (!currentQuestion || hintLevel === 0) return null;
-        if (hintLevel === 1) return <GeneralFormulaHint type={currentQuestion.type} />;
-        if (hintLevel === 2) return <DetailedFormulaHint question={currentQuestion} />;
-        return null;
+        if (hintLevel === 0 || feedback) return null; // Don't show old hints with feedback
+        
+        let hintContent = null;
+        if(currentHint) {
+            hintContent = <p><span className="font-bold">רמז:</span> {currentHint}</p>;
+        } else if (hintLevel > 0) {
+            // This is for the formula-based hints that were there before
+            if (hintLevel === 1) hintContent = <GeneralFormulaHint type={currentQuestion.type} />;
+            if (hintLevel === 2) hintContent = <DetailedFormulaHint question={currentQuestion} />;
+        }
+        
+        if (!hintContent) return null;
+
+        return (
+// Fix: Correctly reference feedback colors from `design.colors.feedback` instead of `design.feedback`.
+            <div className={`mt-4 p-4 rounded-lg ${design.colors.feedback.warning.bg} border-r-4 ${design.colors.feedback.warning.border} ${design.colors.feedback.warning.text}`}>
+                {hintContent}
+            </div>
+        );
     };
     
     // --- RENDER LOGIC ---
@@ -429,8 +461,8 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
             </div>
             
             <div className={design.layout.card}>
-                 <div className={`grid gap-8 ${currentQuestion.points || currentQuestion.lines ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
-                    {(currentQuestion.points || currentQuestion.lines) && (
+                 <div className={`grid gap-8 ${currentQuestion.points || currentQuestion.lines || currentQuestion.type === 'SOLVE_EQUATION_VARIABLE_DENOMINATOR' ? 'grid-cols-1' : 'lg:grid-cols-2'}`}>
+                    {(currentQuestion.points || currentQuestion.lines) && currentQuestion.type !== 'SOLVE_EQUATION_VARIABLE_DENOMINATOR' && (
                         <CoordinatePlane
                             points={currentQuestion.points}
                             lines={currentQuestion.lines?.map(l => ({ p1: {x: -20, y: l.m * -20 + l.b }, p2: {x: 20, y: l.m * 20 + l.b }, color: 'stroke-blue-500'}))}
@@ -443,6 +475,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                        <p className={`${design.colors.text.muted.light} dark:${design.colors.text.muted.dark} text-sm font-bold uppercase`}>{getSubjectNameFromType(currentQuestion.type)}</p>
                        <div className="text-xl md:text-2xl font-semibold my-4 text-gray-800 dark:text-gray-100">
                            <ColoredText text={currentQuestion.question} />
+                           {currentQuestion.equationParts && <EquationDisplay parts={currentQuestion.equationParts} />}
                        </div>
                        
                         {!feedback ? (
@@ -456,10 +489,26 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                         ) : (
                            <div className={design.practice.feedbackCard(feedback.isCorrect)}>
                                <h3 className="text-2xl font-bold mb-2">{feedback.isCorrect ? 'כל הכבוד!' : 'תשובה שגויה'}</h3>
-                               {!feedback.isCorrect && <p>התשובה הנכונה היא {isPoint(currentQuestion.solution) ? <ColoredPointDisplay point={currentQuestion.solution} /> : currentQuestion.solution}</p>}
-                               <p className="mb-4">{feedback.explanation}</p>
+                               
+                               {!feedback.isCorrect && <p className="mb-2">התשובה הנכונה היא: <span className="font-bold">{isPoint(currentQuestion.solution) ? <ColoredPointDisplay point={currentQuestion.solution} /> : currentQuestion.solution}</span></p>}
+
+                                <div className="mt-2 text-right">
+                                    {feedback.isCorrect ? (
+                                        <p>{feedback.detailedExplanation[0]}</p>
+                                    ) : (
+                                        <>
+                                            <h4 className="font-bold mt-4 mb-2">דרך הפתרון:</h4>
+                                            <ol className="list-decimal list-inside space-y-2 text-sm bg-gray-100 dark:bg-gray-700/50 p-4 rounded-md">
+                                                {feedback.detailedExplanation.map((step, index) => (
+                                                    <li key={index}>{step}</li>
+                                                ))}
+                                            </ol>
+                                        </>
+                                    )}
+                                </div>
+
                                {feedback.isCorrect && feedback.earnedScore > 0 && (
-                                   <div className="flex items-center justify-center gap-2 font-bold bg-yellow-200/50 dark:bg-yellow-800/50 p-2 rounded-lg">
+                                   <div className="flex items-center justify-center gap-2 font-bold bg-yellow-200/50 dark:bg-yellow-800/50 p-2 rounded-lg mt-4">
                                        <StarIcon className={`h-6 w-6 text-${design.colors.accent.yellow}`} />
                                        <span>+{feedback.earnedScore} נקודות</span>
                                    </div>

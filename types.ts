@@ -24,7 +24,7 @@ export const SUBJECTS: Record<string, Subject> = {
   MIDPOINT: { id: 'midpoint', name: 'אמצע קטע', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
   TRIANGLE_PROPERTIES: { id: 'triangle_properties', name: 'תכונות משולש', enabled: true, practice: false, category: 'גיאומטריה אנליטית' },
   AREA_CALC: { id: 'area_calc', name: 'חישוב שטח משולש', enabled: true, practice: false, category: 'גיאומטריה אנליטית' },
-  EQUATIONS_WITH_VARIABLE_DENOMINATOR: { id: 'equations_with_variable_denominator', name: 'משוואות עם נעלם במכנה', enabled: true, practice: false, category: 'אלגברה' },
+  EQUATIONS_WITH_VARIABLE_DENOMINATOR: { id: 'equation_variable_denominator', name: 'משוואות עם נעלם במכנה', enabled: true, practice: true, category: 'אלגברה' },
 };
 
 
@@ -51,7 +51,7 @@ export type QuestionType =
   'FIND_ENDPOINT_MCQ' | 'IDENTIFY_COORDINATES' |
   'CALCULATE_AREA' | 'CALCULATE_SLOPE' | 
   'CALCULATE_DISTANCE' | 'FIND_PERPENDICULAR_SLOPE' |
-  'FIND_INTERSECTION_POINT';
+  'FIND_INTERSECTION_POINT' | 'SOLVE_EQUATION_VARIABLE_DENOMINATOR';
 
 export interface LineEquation {
     m: number;
@@ -59,13 +59,32 @@ export interface LineEquation {
     text: string;
 }
 
+export interface EquationFraction {
+    type: 'fraction';
+    numerator: string;
+    denominator: string;
+}
+export interface EquationOperator {
+    type: 'operator';
+    value: string; // '+', '-', '='
+}
+export interface EquationNumber {
+    type: 'number';
+    value: number;
+}
+
+export type EquationPart = EquationFraction | EquationOperator | EquationNumber;
+
+
 export interface Question {
   type: QuestionType;
   question: string;
   points?: { A?: Point; B?: Point; C?: Point; M?: Point };
   lines?: LineEquation[];
+  equationParts?: EquationPart[];
   solution: Point | number;
-  explanation: string;
+  explanation: string; // This will now be the first-step hint
+  detailedExplanation: string[]; // This is the full, step-by-step solution
   difficulty: Difficulty['id'];
   options?: (Point | number)[];
 }
