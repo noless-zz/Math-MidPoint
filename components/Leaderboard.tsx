@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase/config.ts';
 import { userList } from '../users.tsx';
-import { CrownIcon, StarIcon } from './icons.tsx';
+import { CrownIcon, StarIcon, SleepingIcon } from './icons.tsx';
 import { design } from '../constants/design_system.ts';
 
 const FIRESTORE_COLLECTION = 'scores_aloni_yitzhak_10_4';
@@ -31,9 +31,12 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, rank, isCurrentUs
                 </span>
                 {rank <= 3 && <CrownIcon className={`h-5 w-5 ml-1 ${rankColor(rank)}`} />}
             </div>
-            <div className="flex-grow font-semibold text-gray-800 dark:text-gray-100">
-                {user.username}
+            <div className="flex-grow font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                <span>{user.username}</span>
                 {isCurrentUser && <span className={`text-sm font-normal text-${design.colors.primary.DEFAULT} dark:text-indigo-400`}> (את/ה)</span>}
+                {user.score === 0 && !isCurrentUser && (
+                    <SleepingIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" title="טרם שיחק/ה" />
+                )}
             </div>
             <div className={`flex items-center gap-2 text-lg font-bold text-${design.colors.primary.light}`}>
                 <span>{user.score}</span>
