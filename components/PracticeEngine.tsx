@@ -213,8 +213,9 @@ const NumberInput: React.FC<{ value: number | string, onChange: (n: string) => v
 
 
 const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficulty: Difficulty['id'] }) => void }> = ({ onStart }) => {
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(['midpoint']);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty['id']>('easy');
+  const practiceSubjects = Object.values(SUBJECTS).filter(s => s.practice);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(practiceSubjects.map(subject => subject.id));
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty['id']>('medium');
 
   const handleSubjectChange = (subjectId: string) => {
     setSelectedSubjects(prev =>
@@ -230,8 +231,6 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
       onStart({ subjects: selectedSubjects, difficulty: selectedDifficulty });
     }
   };
-
-  const practiceSubjects = Object.values(SUBJECTS).filter(s => s.practice);
 
   return (
     <div className={design.layout.card}>
