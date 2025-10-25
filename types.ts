@@ -12,17 +12,19 @@ export interface Subject {
   name: string;
   enabled: boolean;
   practice: boolean;
+  category: string;
 }
 
 export const SUBJECTS: Record<string, Subject> = {
-  COORDINATE_SYSTEM: { id: 'coordinate_system', name: 'מערכת צירים', enabled: true, practice: true },
-  STRAIGHT_LINE: { id: 'straight_line', name: 'הקו הישר', enabled: true, practice: true },
-  LINE_INTERSECTION: { id: 'line_intersection', name: 'חיתוך בין ישרים', enabled: true, practice: true },
-  PERPENDICULAR_LINES: { id: 'perpendicular_lines', name: 'ישרים מאונכים', enabled: true, practice: true },
-  DISTANCE: { id: 'distance', name: 'מרחק בין נקודות', enabled: true, practice: true },
-  MIDPOINT: { id: 'midpoint', name: 'אמצע קטע', enabled: true, practice: true },
-  TRIANGLE_PROPERTIES: { id: 'triangle_properties', name: 'תכונות משולש', enabled: true, practice: false },
-  AREA_CALC: { id: 'area_calc', name: 'חישוב שטח משולש', enabled: true, practice: false },
+  COORDINATE_SYSTEM: { id: 'coordinate_system', name: 'מערכת צירים', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
+  STRAIGHT_LINE: { id: 'straight_line', name: 'הקו הישר', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
+  LINE_INTERSECTION: { id: 'line_intersection', name: 'חיתוך בין ישרים', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
+  PERPENDICULAR_LINES: { id: 'perpendicular_lines', name: 'ישרים מאונכים', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
+  DISTANCE: { id: 'distance', name: 'מרחק בין נקודות', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
+  MIDPOINT: { id: 'midpoint', name: 'אמצע קטע', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
+  TRIANGLE_PROPERTIES: { id: 'triangle_properties', name: 'תכונות משולש', enabled: true, practice: false, category: 'גיאומטריה אנליטית' },
+  AREA_CALC: { id: 'area_calc', name: 'חישוב שטח משולש', enabled: true, practice: false, category: 'גיאומטריה אנליטית' },
+  EQUATIONS_WITH_VARIABLE_DENOMINATOR: { id: 'equations_with_variable_denominator', name: 'משוואות עם נעלם במכנה', enabled: true, practice: false, category: 'אלגברה' },
 };
 
 

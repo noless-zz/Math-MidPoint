@@ -37,7 +37,7 @@ const Formula = ({ title = null, children, explanation = null }) => (
 
 const ImportantNote = ({ children }) => (
     <div className={design.learn.importantNote}>
-        <p><span className="font-bold">הערה:</span> {children}</p>
+        <p><span className="font-bold">הערה חשובה:</span> {children}</p>
     </div>
 );
 
@@ -290,6 +290,82 @@ const MidpointLearnContent = () => {
 }
 
 // --- NEW LEARNING CONTENT ---
+
+const MathEquation = ({ children, explanation=null }) => (
+    <div className="text-center my-4">
+        <div dir="ltr" className="p-4 bg-gray-200 dark:bg-gray-700 rounded-md text-lg md:text-xl font-mono shadow-inner inline-block">
+            {children}
+        </div>
+        {explanation && <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{explanation}</p>}
+    </div>
+);
+
+const EquationsWithVariableDenominatorContent = () => (
+    <ContentPage title="משוואות עם נעלם במכנה" intro="בואו נלמד את השיטה לפתרון משוואות שבהן הנעלם (x) מופיע במכנה של שבר אחד או יותר.">
+        <Section title="שלב 0: תחום הגדרה">
+            <p>השלב הראשון והחשוב ביותר בפתרון משוואות כאלו הוא קביעת <b>תחום ההגדרה</b>. במתמטיקה, חילוק באפס הוא פעולה לא מוגדרת. לכן, עלינו לוודא שהמכנה של אף שבר במשוואה לא יהיה שווה לאפס.</p>
+            <p>אנו עושים זאת על ידי בדיקת כל מכנה בנפרד, וקביעת הערכים של x שבעבורם המכנה מתאפס. ערכים אלו <b>אינם</b> יכולים להיות פתרון המשוואה.</p>
+            <Example title="דוגמה למציאת תחום הגדרה">
+                 <p>במשוואה הבאה:</p>
+                 <MathEquation>
+                    <Fraction numerator={5} denominator={'x - 2'} />
+                    <span className="mx-2">=</span>
+                    <Fraction numerator={10} denominator={'x + 3'} />
+                 </MathEquation>
+                 <p>יש שני מכנים:</p>
+                 <ul className="list-disc pr-5 space-y-2">
+                    <li><b>המכנה הראשון:</b> <span dir="ltr">x - 2</span>. הוא מתאפס כאשר <span dir="ltr">x - 2 = 0</span>, כלומר <span dir="ltr">x = 2</span>.</li>
+                    <li><b>המכנה השני:</b> <span dir="ltr">x + 3</span>. הוא מתאפס כאשר <span dir="ltr">x + 3 = 0</span>, כלומר <span dir="ltr">x = -3</span>.</li>
+                 </ul>
+                 <p className="mt-2">לכן, תחום ההגדרה של המשוואה הוא <b dir="ltr">x &ne; 2</b> וגם <b dir="ltr">x &ne; -3</b>.</p>
+            </Example>
+        </Section>
+        <Section title="שלבי הפתרון">
+            <p>לאחר מציאת תחום ההגדרה, תהליך הפתרון כולל את השלבים הבאים:</p>
+            <ol className="list-decimal list-inside space-y-3 font-semibold">
+                <li>מוצאים את <b>המכנה המשותף</b> הקטן ביותר של כל השברים במשוואה.</li>
+                <li><b>כופלים</b> כל איבר במשוואה במכנה המשותף שמצאנו. פעולה זו "מבטלת" את המכנים ומשאירה אותנו עם משוואה פשוטה יותר, ללא שברים.</li>
+                <li><b>פותרים</b> את המשוואה החדשה שקיבלנו (בדרך כלל משוואה ממעלה ראשונה או שנייה).</li>
+                <li><b>בודקים</b> את הפתרונות. יש לוודא שכל פתרון שקיבלנו נמצא בתחום ההגדרה. פתרון שאינו בתחום ההגדרה - נפסל.</li>
+            </ol>
+        </Section>
+        <Section title="דוגמה 1: משוואה פשוטה">
+            <Example title="פתרו את המשוואה">
+                <MathEquation><Fraction numerator={10} denominator={'x'} /> - 3 = 4</MathEquation>
+                <p><span className="font-bold">1. תחום הגדרה:</span> המכנה הוא x, לכן <b dir="ltr">x &ne; 0</b>.</p>
+                <p><span className="font-bold">2. מכנה משותף:</span> המכנה המשותף הוא <b>x</b>.</p>
+                <p><span className="font-bold">3. כפל במכנה משותף:</span> נכפול את כל המשוואה ב-x:</p>
+                <MathEquation>x &middot; (<Fraction numerator={10} denominator={'x'} /> - 3) = x &middot; 4</MathEquation>
+                <MathEquation>10 - 3x = 4x</MathEquation>
+                <p><span className="font-bold">4. פתרון:</span> נעביר אגפים:</p>
+                <MathEquation>10 = 7x <span className="mx-4">&rarr;</span> x = <Fraction numerator={10} denominator={7} /></MathEquation>
+                <p><span className="font-bold">5. בדיקה:</span> הפתרון <span dir="ltr">x = 10/7</span> אינו 0, ולכן הוא תקין.</p>
+            </Example>
+        </Section>
+        <Section title="דוגמה 2: פתרון שנפסל">
+            <Example title="פתרו את המשוואה">
+                <MathEquation><Fraction numerator={'2x'} denominator={'x - 5'} /> - <Fraction numerator={10} denominator={'x - 5'} /> = 3</MathEquation>
+                <p><span className="font-bold">1. תחום הגדרה:</span> המכנה הוא x-5, לכן <b dir="ltr">x &ne; 5</b>.</p>
+                <p><span className="font-bold">2. מכנה משותף:</span> המכנה המשותף הוא <b>x - 5</b>.</p>
+                <p><span className="font-bold">3. כפל ופישוט:</span> מכיוון שיש מכנה זהה, ניתן לחבר את המונים תחילה:</p>
+                <MathEquation><Fraction numerator={'2x - 10'} denominator={'x - 5'} /> = 3</MathEquation>
+                <MathEquation><Fraction numerator={'2(x - 5)'} denominator={'x - 5'} /> = 3</MathEquation>
+                <p>כעת ניתן לצמצם (בהנחה ש-x לא שווה 5):</p>
+                <MathEquation>2 = 3</MathEquation>
+                <p>קיבלנו "פסוק שקר" (2 לא שווה 3), מה שאומר שלמשוואה אין פתרון. <br/> דרך אחרת היא לכפול במכנה המשותף:</p>
+                <MathEquation>{'(x-5)'} &middot; <Fraction numerator={'2x - 10'} denominator={'x - 5'} /> = 3 &middot; {'(x-5)'}</MathEquation>
+                <MathEquation>2x - 10 = 3x - 15</MathEquation>
+                <p><span className="font-bold">4. פתרון:</span></p>
+                <MathEquation>5 = x</MathEquation>
+                <ImportantNote>
+                    <b>שימו לב!</b> קיבלנו פתרון <b dir="ltr">x = 5</b>.
+                </ImportantNote>
+                <p><span className="font-bold">5. בדיקה:</span> בתחילת הדרך קבענו שתחום ההגדרה הוא <b dir="ltr">x &ne; 5</b>. מכיוון שהפתרון היחיד שקיבלנו נפסל על ידי תחום ההגדרה, למשוואה <b>אין פתרון</b>.</p>
+            </Example>
+        </Section>
+    </ContentPage>
+);
+
 
 const CoordinateSystemContent = () => (
     <ContentPage title="מבוא - מערכת צירים" intro="בואו נלמד על מערכת הצירים ואיך למקם נקודות על המישור.">
@@ -598,6 +674,17 @@ const TrianglePropertiesContent = () => (
 export default function LearnSection() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
 
+  const groupedSubjects = useMemo(() => {
+    return Object.values(SUBJECTS).reduce((acc, subject) => {
+        const category = subject.category || 'כללי';
+        if (!acc[category]) {
+            acc[category] = [];
+        }
+        acc[category].push(subject);
+        return acc;
+    }, {} as Record<string, Subject[]>);
+  }, []);
+
   const renderContent = () => {
     if (!selectedSubject) return null;
     switch(selectedSubject.id) {
@@ -615,6 +702,8 @@ export default function LearnSection() {
             return <DistanceContent />;
         case SUBJECTS.TRIANGLE_PROPERTIES.id:
             return <TrianglePropertiesContent />;
+        case SUBJECTS.EQUATIONS_WITH_VARIABLE_DENOMINATOR.id:
+            return <EquationsWithVariableDenominatorContent />;
         default:
             return (
                 <div className={design.layout.card}>
@@ -632,25 +721,31 @@ export default function LearnSection() {
         <p className={`text-lg ${design.colors.text.muted.light} dark:${design.colors.text.muted.dark} text-center mb-10`}>
           בחר/י נושא כדי להתחיל ללמוד.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Object.values(SUBJECTS).map((subject: Subject) => (
-            <div
-              key={subject.id}
-              onClick={() => subject.enabled && setSelectedSubject(subject)}
-              className={subject.enabled ? design.learn.subjectSelector.enabled : design.learn.subjectSelector.disabled}
-            >
-              <h3 className={design.typography.cardTitle}>{subject.name}</h3>
-              {!subject.enabled && (
-                <span className={`mt-2 inline-block bg-yellow-400 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded-full`}>
-                  בקרוב!
-                </span>
-              )}
+        {Object.entries(groupedSubjects).map(([category, subjects]) => (
+            <div key={category} className="mb-12">
+                <h3 className="text-2xl font-bold mb-4 text-right border-b-2 border-indigo-400 pb-2">{category}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {(subjects as Subject[]).map((subject: Subject) => (
+                    <div
+                    key={subject.id}
+                    onClick={() => subject.enabled && setSelectedSubject(subject)}
+                    className={subject.enabled ? design.learn.subjectSelector.enabled : design.learn.subjectSelector.disabled}
+                    >
+                    <h3 className={design.typography.cardTitle}>{subject.name}</h3>
+                    {!subject.enabled && (
+                        <span className={`mt-2 inline-block bg-yellow-400 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded-full`}>
+                        בקרוב!
+                        </span>
+                    )}
+                    </div>
+                ))}
+                </div>
             </div>
-          ))}
-        </div>
+        ))}
       </div>
     );
   }
+
 
   return (
     <div>
