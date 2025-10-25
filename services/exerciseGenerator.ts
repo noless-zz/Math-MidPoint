@@ -25,7 +25,7 @@ function formatDenominator(term: string, constant: number): string {
 
 
 // --- EQUATIONS WITH VARIABLE DENOMINATOR ---
-function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty['id']): Question {
+function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     const questionText = `פתור את המשוואה:`;
     let solution: number | EquationSolution;
     let explanation: string;
@@ -42,14 +42,14 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         const a = c * (x_sol + b);
         
         const denominator = b === 0 ? 'x' : `x ${b > 0 ? '+' : '-'} ${Math.abs(b)}`;
-        solution = x_sol;
+        solution = { value: [x_sol], domain: [-b]};
         explanation = `כדי לפתור, יש לבודד את הנעלם x.`;
         detailedExplanation = [
             `תחום הגדרה: המכנה לא יכול להיות אפס, לכן x ≠ ${-b}.`,
             `כופלים את שני אגפי המשוואה במכנה (${denominator}): ${a} = ${c}(${denominator})`,
             `פותחים סוגריים: ${a} = ${c}x ${c*b >= 0 ? '+' : '-'} ${Math.abs(c*b)}`,
             `מעבירים אגפים כדי לבודד את x: ${a - (c*b)} = ${c}x`,
-            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
+            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${x_sol}`,
             `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
         equationParts = [ { type: 'fraction', numerator: a.toString(), denominator }, { type: 'operator', value: '=' }, { type: 'term', value: c.toString() } ];
@@ -70,14 +70,14 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
 
         const numStr = `${a}x ${b >= 0 ? '+' : '-'} ${Math.abs(b)}`;
         const denStr = `${c}x ${d >= 0 ? '+' : '-'} ${Math.abs(d)}`;
-        solution = x_sol;
+        solution = { value: [x_sol], domain: [-d/c] };
         explanation = `כדי לבטל את המכנה, יש לכפול את שני האגפים ב-${denStr}.`;
         detailedExplanation = [
             `תחום הגדרה: המכנה לא יכול להיות אפס, לכן x ≠ ${(-d/c).toFixed(2)}.`,
             `כופלים את שני האגפים במכנה: ${numStr} = ${e}(${denStr})`,
             `פותחים סוגריים: ${numStr} = ${e*c}x ${e*d >= 0 ? '+' : '-'} ${Math.abs(e*d)}`,
             `מעבירים איברים עם x לאגף אחד ומספרים לאגף השני: ${a - e*c}x = ${e*d - b}`,
-            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
+            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${x_sol}`,
             `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`,
         ];
         equationParts = [ { type: 'fraction', numerator: numStr, denominator: denStr }, { type: 'operator', value: '=' }, { type: 'term', value: e.toString() } ];
@@ -172,14 +172,14 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
 
         const den1Str = formatDenominator('x', b);
         const den2Str = formatDenominator('x', d);
-        solution = x_sol;
+        solution = { value: [x_sol], domain: [-b, -d].sort() };
         explanation = `כדי לפתור, יש לבצע כפל בהצלבה כדי להיפטר מהמכנים.`;
         detailedExplanation = [
             `תחום הגדרה: x ≠ ${-b} וגם x ≠ ${-d}.`,
             `מבצעים כפל בהצלבה: ${a}(${den2Str}) = ${c}(${den1Str})`,
             `פותחים סוגריים: ${a}x ${a*d >= 0 ? '+' : '-'} ${Math.abs(a*d)} = ${c}x ${c*b >= 0 ? '+' : '-'} ${Math.abs(c*b)}`,
             `מעבירים אגפים: ${a - c}x = ${c*b - a*d}`,
-            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
+            `מחלקים במקדם של x ומקבלים את הפתרון: x = ${x_sol}`,
             `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
         equationParts = [
@@ -203,7 +203,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         const den1Str = formatDenominator('x', -b);
         const den2Str = `${b} - x`;
 
-        solution = x_sol;
+        solution = { value: [x_sol], domain: [b] };
         explanation = `שים לב שניתן להפוך את המכנה השני ולהחליף את הסימן שלפני השבר.`;
         detailedExplanation = [
             `תחום הגדרה: x ≠ ${b}.`,
@@ -211,7 +211,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
             `לכן ניתן לרשום את המשוואה מחדש: ${a}/(${den1Str}) - ${c}/(${den1Str}) = ${d}`,
             `מאחדים שברים: (${a-c})/(${den1Str}) = ${d}`,
             `כופלים במכנה: ${a_minus_c} = ${d}(${den1Str})`,
-            `פותרים ומקבלים: x = ${solution}`,
+            `פותרים ומקבלים: x = ${x_sol}`,
             `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
         equationParts = [
@@ -368,7 +368,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
 
 
 // --- MIDPOINT QUESTIONS ---
-function generateMidpointVisualQuestion(difficulty: Difficulty['id']): Question {
+function generateMidpointVisualQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let range = 10;
     if (difficulty === 'easy') range = 6;
     if (difficulty === 'hard') range = 12;
@@ -397,7 +397,7 @@ function generateMidpointVisualQuestion(difficulty: Difficulty['id']): Question 
     };
 }
 
-function generateMidpointTextQuestion(difficulty: Difficulty['id'], isMCQ: boolean): Question {
+function generateMidpointTextQuestion(difficulty: Difficulty['id'], isMCQ: boolean): Omit<Question, 'subjectId'> {
     let range = 10;
     if (difficulty === 'easy') range = 5;
     if (difficulty === 'hard') range = 20;
@@ -468,7 +468,7 @@ function generateMidpointTextQuestion(difficulty: Difficulty['id'], isMCQ: boole
     }
 }
 
-function generateMidpointQuestion(difficulty: Difficulty['id']): Question {
+function generateMidpointQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     const rand = Math.random();
     if (difficulty === 'easy') {
         if (rand < 0.5) return generateMidpointVisualQuestion(difficulty);
@@ -487,7 +487,7 @@ function generateMidpointQuestion(difficulty: Difficulty['id']): Question {
 
 // --- NEW QUESTION GENERATORS ---
 
-function generateSlopeQuestion(difficulty: Difficulty['id']): Question {
+function generateSlopeQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let range = 10;
     if (difficulty === 'easy') range = 5;
     if (difficulty === 'hard') range = 15;
@@ -521,7 +521,7 @@ function generateSlopeQuestion(difficulty: Difficulty['id']): Question {
     };
 }
 
-function generateDistanceQuestion(difficulty: Difficulty['id']): Question {
+function generateDistanceQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let range = 10;
     if (difficulty === 'easy') range = 6;
     if (difficulty === 'hard') range = 15;
@@ -559,7 +559,7 @@ function generateDistanceQuestion(difficulty: Difficulty['id']): Question {
     };
 }
 
-function generatePerpendicularSlopeQuestion(difficulty: Difficulty['id']): Question {
+function generatePerpendicularSlopeQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let m1: number;
     let questionText: string;
 
@@ -596,7 +596,7 @@ function generatePerpendicularSlopeQuestion(difficulty: Difficulty['id']): Quest
     };
 }
 
-function generateIntersectionQuestion(difficulty: Difficulty['id']): Question {
+function generateIntersectionQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let line1: LineEquation, line2: LineEquation;
     let intersection: Point;
 
@@ -635,7 +635,7 @@ function generateIntersectionQuestion(difficulty: Difficulty['id']): Question {
     };
 }
 
-function generateLineEquationQuestion(difficulty: Difficulty['id']): Question {
+function generateLineEquationQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let p1: Point, p2: Point, m: number, b: number;
     let range = 8;
     if (difficulty === 'medium') range = 12;
@@ -684,7 +684,7 @@ function generateLineEquationQuestion(difficulty: Difficulty['id']): Question {
     };
 }
 
-function generateQuadrantQuestion(difficulty: Difficulty['id']): Question {
+function generateQuadrantQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let range = 10;
     if (difficulty === 'hard') range = 20;
 
@@ -736,7 +736,7 @@ function generateQuadrantQuestion(difficulty: Difficulty['id']): Question {
 }
 
 // --- EXISTING GENERATORS (UNCHANGED) ---
-function generateAreaQuestion(difficulty: Difficulty['id']): Question {
+function generateAreaQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let range = 10;
     if (difficulty === 'easy') range = 5;
     if (difficulty === 'hard') range = 15;
@@ -762,7 +762,7 @@ function generateAreaQuestion(difficulty: Difficulty['id']): Question {
     };
 }
 
-function generateIdentifyCoordinatesQuestion(difficulty: Difficulty['id']): Question {
+function generateIdentifyCoordinatesQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     let range = 12, numPoints = 1;
     if (difficulty === 'easy') { range = 8; numPoints = getRandomInt(1, 2); }
     if (difficulty === 'medium') { range = 10; numPoints = getRandomInt(2, 3); }
@@ -788,14 +788,14 @@ function generateIdentifyCoordinatesQuestion(difficulty: Difficulty['id']): Ques
 
 
 // --- ROUTER GENERATORS ---
-function generateCoordinateSystemQuestion(difficulty: Difficulty['id']): Question {
+function generateCoordinateSystemQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     if (difficulty === 'easy' || Math.random() < 0.5) {
         return generateIdentifyCoordinatesQuestion(difficulty);
     }
     return generateQuadrantQuestion(difficulty);
 }
 
-function generateStraightLineQuestion(difficulty: Difficulty['id']): Question {
+function generateStraightLineQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
     if (Math.random() < 0.5) {
         return generateSlopeQuestion(difficulty);
     }
@@ -804,7 +804,7 @@ function generateStraightLineQuestion(difficulty: Difficulty['id']): Question {
 
 
 // --- MAIN GENERATOR ---
-const generators = {
+const generators: Record<string, (difficulty: Difficulty['id']) => Omit<Question, 'subjectId'>> = {
     [SUBJECTS.MIDPOINT.id]: generateMidpointQuestion,
     [SUBJECTS.AREA_CALC.id]: generateAreaQuestion,
     [SUBJECTS.COORDINATE_SYSTEM.id]: generateCoordinateSystemQuestion,
@@ -820,5 +820,7 @@ export function generateQuestion(config: { subjects: string[]; difficulty: Diffi
     const availableGenerators = config.subjects.filter(id => generators[id]);
     const randomSubjectId = availableGenerators[Math.floor(Math.random() * availableGenerators.length)];
     const generator = generators[randomSubjectId];
-    return generator(config.difficulty);
+    const question = generator(config.difficulty) as Question;
+    question.subjectId = randomSubjectId;
+    return question;
 }

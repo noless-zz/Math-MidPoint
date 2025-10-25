@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../firebase/config.ts';
+import { db, firebase } from '../firebase/config.ts';
 
 const CURRENT_USER_KEY = 'midpointMasterCurrentUser';
 const FIRESTORE_COLLECTION = 'scores_aloni_yitzhak_10_4';
@@ -10,6 +10,8 @@ interface User {
   username: string;
   score: number;
   completedExercises: number;
+  scoresBySubject?: Record<string, number>;
+  lastPlayed?: firebase.firestore.Timestamp;
 }
 
 export function useUser() {
@@ -30,6 +32,8 @@ export function useUser() {
           username: username,
           score: userData?.score || 0,
           completedExercises: userData?.completedExercises || 0,
+          scoresBySubject: userData?.scoresBySubject || {},
+          lastPlayed: userData?.lastPlayed || null,
         });
       } else {
         // User exists in the list but not in Firestore yet.
@@ -39,6 +43,8 @@ export function useUser() {
           username: username,
           score: 0,
           completedExercises: 0,
+          scoresBySubject: {},
+          lastPlayed: null,
         });
       }
     } catch (error) {
@@ -76,21 +82,27 @@ export function useUser() {
     localStorage.removeItem(CURRENT_USER_KEY);
   }, []);
 
-  const updateUser = useCallback((scoreToAdd: number, exercisesToAdd: number) => {
+  const updateUser = useCallback((scoreToAdd: number, exercisesToAdd: number, subjectId: string) => {
     if (!user) return;
 
     const updatedUser: User = {
       ...user,
       score: user.score + scoreToAdd,
       completedExercises: user.completedExercises + exercisesToAdd,
+      scoresBySubject: {
+          ...(user.scoresBySubject || {}),
+          [subjectId]: ((user.scoresBySubject || {})[subjectId] || 0) + scoreToAdd
+      }
     };
     
     setUser(updatedUser);
 
-    // Update Firestore, will create the document if it doesn't exist
+    // Update Firestore with FieldValue for atomic operations
     db.collection(FIRESTORE_COLLECTION).doc(updatedUser.username).set({
-      score: updatedUser.score,
-      completedExercises: updatedUser.completedExercises,
+      score: firebase.firestore.FieldValue.increment(scoreToAdd),
+      completedExercises: firebase.firestore.FieldValue.increment(exercisesToAdd),
+      [`scoresBySubject.${subjectId}`]: firebase.firestore.FieldValue.increment(scoreToAdd),
+      lastPlayed: firebase.firestore.FieldValue.serverTimestamp(),
     }, { merge: true }).catch(error => {
       console.error("Failed to update user data in Firestore:", error);
     });

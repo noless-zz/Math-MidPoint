@@ -98,6 +98,7 @@ export interface Question {
   detailedExplanation: string[]; // This is the full, step-by-step solution
   difficulty: Difficulty['id'];
   options?: (Point | number | string)[];
+  subjectId: string;
 }
 
 // This type can be expanded to include other AI models if needed

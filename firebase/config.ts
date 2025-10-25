@@ -40,4 +40,4 @@ db.enablePersistence({ synchronizeTabs: true })
   });
 */
 
-export { auth, db, app };
+export { auth, db, app, firebase };

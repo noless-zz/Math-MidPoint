@@ -429,7 +429,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
 
         if (isCorrect) {
             setFeedback({ isCorrect: true, detailedExplanation: [currentQuestion.explanation, ...currentQuestion.detailedExplanation], earnedScore: potentialScore });
-            updateUser(potentialScore, 1);
+            updateUser(potentialScore, 1, currentQuestion.subjectId);
             setRevealedSteps([]);
         } else { // Incorrect
             setAttempts(newAttempts);
@@ -620,7 +620,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
 };
 
 
-export default function PracticeEngine({ updateUser }: { updateUser: (s: number, e: number) => void }) {
+export default function PracticeEngine({ updateUser }: { updateUser: (s: number, e: number, subjectId: string) => void }) {
     const [config, setConfig] = useState<{ subjects: string[]; difficulty: Difficulty['id'] } | null>(null);
 
     if (!config) {
