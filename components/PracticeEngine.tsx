@@ -71,8 +71,19 @@ const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ ste
     const textPart = parts.length > 1 ? parts[0].trim() + ':' : step;
     const contentPart = parts.length > 1 ? parts[1].trim() : null;
 
+    // Heuristic to check if the content is a mathematical expression to be highlighted
+    const isMathContent = contentPart && (
+        contentPart.includes('x') || 
+        contentPart.includes('=') || 
+        contentPart.includes('≠') || 
+        contentPart.includes('(') || 
+        contentPart.includes(')') ||
+        contentPart.includes('²')
+    );
+
+
     return (
-        <div className="flex items-start gap-x-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div className="flex items-start gap-x-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             {/* Step Number */}
             <div className="flex-shrink-0 w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-md mt-1">
                 {index + 1}
@@ -81,9 +92,13 @@ const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ ste
             <div className="flex-grow">
                 <p className="font-semibold text-gray-800 dark:text-gray-200">{textPart}</p>
                 {contentPart && (
-                     <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-900 border-r-4 border-indigo-400 rounded-md">
-                        <p dir="ltr" className="text-center font-mono text-lg">{contentPart}</p>
-                    </div>
+                     isMathContent ? (
+                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/50 border-l-4 border-purple-500 rounded-md">
+                            <p dir="ltr" className="text-center text-lg">{contentPart}</p>
+                        </div>
+                     ) : (
+                        <p className="mt-1 text-gray-700 dark:text-gray-300">{contentPart}</p>
+                     )
                 )}
             </div>
         </div>
@@ -92,8 +107,8 @@ const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ ste
 
 const ExplanationRenderer: React.FC<{ steps: string[], title: string }> = ({ steps, title }) => (
     <div className="mt-6">
-        <h4 className="font-bold text-xl mb-4 text-right border-b-2 border-gray-200 dark:border-gray-700 pb-2">{title}</h4>
-        <div className="space-y-4 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+        <h4 className="font-bold text-xl mb-4 text-right">{title}</h4>
+        <div className="space-y-3">
             {steps.map((step, index) => (
                 <ExplanationStepDisplay key={index} step={step} index={index} />
             ))}
@@ -103,7 +118,58 @@ const ExplanationRenderer: React.FC<{ steps: string[], title: string }> = ({ ste
 
 // --- PRACTICE-SPECIFIC INPUT & DISPLAY COMPONENTS ---
 
-const inputBaseStyle = "block w-full px-3 py-3 bg-gray-100 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-lg";
+const inputBaseStyle = "block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition-colors";
+
+const SolutionInput: React.FC<{ values: string[], onChange: (vals: string[]) => void }> = ({ values, onChange }) => {
+    const handleValueChange = (index: number, newValue: string) => {
+        const newValues = [...values];
+        newValues[index] = newValue;
+        onChange(newValues);
+    };
+
+    const addInput = () => {
+        onChange([...values, '']);
+    };
+
+    const removeInput = (index: number) => {
+        if (values.length > 1) {
+            onChange(values.filter((_, i) => i !== index));
+        }
+    };
+    
+    return (
+        <div className="mt-4 space-y-3">
+            <label className="font-bold text-gray-800 dark:text-gray-200">פתרון (x)</label>
+            {values.map((value, index) => (
+                <div key={index} className="flex items-center gap-2">
+                    <span className="font-mono text-xl text-gray-500 dark:text-gray-400">x =</span>
+                    <input 
+                        type="number"
+                        step="any"
+                        value={value}
+                        onChange={(e) => handleValueChange(index, e.target.value)}
+                        className={`${inputBaseStyle} flex-grow text-center`}
+                        dir="ltr"
+                    />
+                    <button 
+                        onClick={() => removeInput(index)}
+                        className={`p-2 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors ${values.length <= 1 ? 'opacity-0 cursor-default' : ''}`}
+                        title="הסר פתרון"
+                        disabled={values.length <= 1}
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            ))}
+             <button
+                onClick={addInput}
+                className={`w-full text-sm mt-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-200/50 dark:bg-gray-700/50 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
+            >
+                + הוסף פתרון
+            </button>
+        </div>
+    )
+};
 
 const PointInput: React.FC<{ value: Partial<Point>, onChange: (p: Partial<Point>) => void }> = ({ value, onChange }) => (
     <div className="flex flex-col sm:flex-row-reverse gap-4 mt-4" dir="rtl">
@@ -180,7 +246,7 @@ const DomainInput: React.FC<{ values: string[], onChange: (vals: string[]) => vo
             ))}
              <button
                 onClick={addInput}
-                className={`w-full text-sm mt-2 font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
+                className={`w-full text-sm mt-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-200/50 dark:bg-gray-700/50 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
             >
                 + הוסף תחום
             </button>
@@ -249,6 +315,7 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
 const PracticeSession = ({ config, updateUser, onBack }) => {
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
     const [userAnswer, setUserAnswer] = useState<Partial<Point> | string | Partial<LineEquationSolution> | null>(null);
+    const [equationSolutions, setEquationSolutions] = useState<string[]>(['']);
     const [userDomain, setUserDomain] = useState<string[]>(['']);
     const [feedback, setFeedback] = useState<{ isCorrect: boolean; detailedExplanation: string[]; earnedScore: number } | null>(null);
     const [attempts, setAttempts] = useState(0);
@@ -272,13 +339,16 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
 
         // Reset answers based on new question type
         if (isEquationSolution(question.solution)) {
-            setUserAnswer('');
+            setEquationSolutions(['']);
             setUserDomain(question.difficulty === 'hard' ? [''] : []);
+            setUserAnswer(null);
         } else if (isLineEquationSolution(question.solution)) {
             setUserAnswer({ m: undefined, b: undefined });
+            setEquationSolutions(['']);
             setUserDomain([]);
         } else {
              setUserAnswer(null);
+             setEquationSolutions(['']);
              setUserDomain([]);
         }
 
@@ -306,13 +376,35 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                 }
             }
         } else if (isEquationSolution(solution)) {
-            const userValue = userAnswer === null || userAnswer === '' ? NaN : parseFloat(userAnswer as string);
             const userDomainNumbers = userDomain.filter(d => d.trim() !== '').map(d => parseFloat(d)).sort((a, b) => a - b);
             const solutionDomain = [...solution.domain].sort((a,b)=>a-b);
             
-            const valueCorrect = (solution.value === null && isNaN(userValue)) || (solution.value !== null && Math.abs(userValue - solution.value) < 0.01);
-            
             const domainCorrect = currentQuestion.difficulty !== 'hard' || (userDomainNumbers.length === solutionDomain.length && userDomainNumbers.every((val, index) => Math.abs(val - solutionDomain[index]) < 0.01));
+
+            const userValues = equationSolutions
+                .map(val => val.trim())
+                .filter(val => val !== '')
+                .map(val => parseFloat(val))
+                .filter(val => !isNaN(val))
+                .sort((a, b) => a - b);
+
+            const solutionValues = solution.value === null ? [] : [...solution.value].sort((a,b)=>a-b);
+            
+            let valueCorrect = false;
+
+            if (solution.value === null) {
+                valueCorrect = userValues.length === 0;
+            } else if (currentQuestion.difficulty === 'hard') {
+                // For hard, we need an exact match of all solutions
+                if (userValues.length === solutionValues.length) {
+                     valueCorrect = userValues.every((val, index) => Math.abs(val - solutionValues[index]) < 0.015);
+                }
+            } else {
+                // For easy/medium, user enters one solution, check if it's one of the correct ones.
+                if (userValues.length === 1) {
+                    valueCorrect = solution.value.some(v => Math.abs(userValues[0] - v) < 0.015);
+                }
+            }
             
             isCorrect = valueCorrect && domainCorrect;
 
@@ -376,7 +468,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
         if (revealedSteps.length === 0 || feedback) return null;
 
         return (
-            <div className="mt-6 p-6 rounded-xl bg-yellow-50 dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700">
+            <div className="mt-6 p-6 rounded-xl bg-yellow-100 dark:bg-yellow-900/50">
                 <ExplanationRenderer steps={revealedSteps} title="רמזים:" />
             </div>
         );
@@ -390,9 +482,11 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
             return `y = ${mStr}x ${bSign} ${bAbs}`;
         }
         if (isEquationSolution(solution)) {
-            const valStr = solution.value === null ? 'אין פתרון' : `x = ${solution.value}`;
-            const domainStr = solution.domain.length > 0 ? `תחום הגדרה: x ≠ ${solution.domain.join(', ')}` : '';
-            return `${valStr}, ${domainStr}`;
+            const valStr = solution.value === null 
+                ? 'אין פתרון' 
+                : solution.value.map(v => `x = ${v.toFixed(2).replace(/\.0+$/,'').replace(/\.$/,'')}`).join(' או ');
+            const domainStr = solution.domain.length > 0 ? `תחום הגדרה: x ≠ ${solution.domain.join(', x ≠ ')}` : '';
+            return `${valStr}${domainStr ? `, ${domainStr}` : ''}`;
         }
         if (isPoint(solution)) return <ColoredPointDisplay point={solution} />;
         if (typeof solution === 'number') return solution.toFixed(2).replace(/\.00$/, '');
@@ -430,10 +524,17 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
             return <LineEquationInput value={userAnswer as Partial<LineEquationSolution> || {}} onChange={setUserAnswer} />;
         }
         if (solutionIsEquation) {
+            if (currentQuestion.difficulty === 'hard') {
+                return (
+                    <>
+                        <SolutionInput values={equationSolutions} onChange={setEquationSolutions} />
+                        <DomainInput values={userDomain} onChange={setUserDomain} />
+                    </>
+                );
+            }
             return (
                 <>
-                    <NumberInput value={userAnswer as string || ''} onChange={(val) => setUserAnswer(val)} label="פתרון (x)" />
-                    {currentQuestion.difficulty === 'hard' && <DomainInput values={userDomain} onChange={setUserDomain} />}
+                    <NumberInput value={equationSolutions[0] || ''} onChange={(val) => setEquationSolutions([val])} label="פתרון (x)" />
                 </>
             );
         }
@@ -445,7 +546,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
     
     const isAnswerEmpty = () => {
         if(solutionIsEquation) {
-            return (userAnswer as string)?.trim() === '';
+            return !equationSolutions || equationSolutions.length === 0 || equationSolutions.every(s => s.trim() === '');
         }
          if (solutionIsLineEq) {
             const ans = userAnswer as Partial<LineEquationSolution>;
@@ -465,7 +566,7 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                 </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50">
+            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700/50">
                 <div className="flex flex-col text-right">
                     <h3 className="text-base font-semibold text-gray-600 dark:text-gray-400">{getSubjectNameFromType(currentQuestion.type)}:</h3>
                     
@@ -485,26 +586,29 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                             </button>
                         </>
                     ) : (
-                        <div className={design.practice.feedbackCard(feedback.isCorrect)}>
+                        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-right">
                            <h3 className="text-2xl font-bold mb-2">{feedback.isCorrect ? 'כל הכבוד!' : 'תשובה שגויה'}</h3>
                            
-                           {!feedback.isCorrect && <p className="mb-2">התשובה הנכונה היא: <span className="font-bold">{formatSolution(currentQuestion.solution)}</span></p>}
+                           {!feedback.isCorrect && (
+                                <p className="mb-6 text-lg">
+                                    התשובה הנכונה היא: <span className="font-bold">{formatSolution(currentQuestion.solution)}</span>
+                                </p>
+                            )}
 
-                            <div className="mt-2 text-right">
-                                {feedback.isCorrect ? (
-                                    <ExplanationRenderer steps={feedback.detailedExplanation} title="דרך הפתרון:" />
-                                ) : (
-                                    <ExplanationRenderer steps={feedback.detailedExplanation} title="דרך הפתרון:" />
-                                )}
+                            <div className="mt-2">
+                               <ExplanationRenderer 
+                                    steps={feedback.detailedExplanation} 
+                                    title="דרך הפתרון:"
+                                />
                             </div>
 
                            {feedback.isCorrect && feedback.earnedScore > 0 && (
-                               <div className="flex items-center justify-center gap-2 font-bold bg-yellow-200/50 dark:bg-yellow-800/50 p-2 rounded-lg mt-4">
-                                   <StarIcon className={`h-6 w-6 text-${design.colors.accent.yellow}`} />
+                               <div className="flex items-center justify-center gap-2 font-bold bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 p-3 rounded-lg mt-6">
+                                   <StarIcon className={`h-6 w-6 text-yellow-500`} />
                                    <span>+{feedback.earnedScore} נקודות</span>
                                </div>
                            )}
-                           <button onClick={nextQuestion} className={`w-full mt-4 ${design.components.button.base} ${feedback.isCorrect ? `bg-${design.colors.accent.green}` : `bg-${design.colors.accent.red}`} hover:opacity-90 text-white`}>
+                           <button onClick={nextQuestion} className={`w-full mt-6 ${design.components.button.base} ${feedback.isCorrect ? `bg-green-500 hover:bg-green-600` : `bg-blue-500 hover:bg-blue-600`} text-white`}>
                                השאלה הבאה
                            </button>
                         </div>

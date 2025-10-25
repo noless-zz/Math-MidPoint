@@ -77,7 +77,7 @@ export interface EquationTerm {
 export type EquationPart = EquationFraction | EquationOperator | EquationTerm;
 
 export interface EquationSolution {
-  value: number | null; // null for "no solution"
+  value: number[] | null; // null for "no solution"
   domain: number[]; // e.g., if x != 2 and x != -3, domain will be [2, -3]
 }
 

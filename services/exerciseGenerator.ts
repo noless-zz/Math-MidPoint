@@ -14,6 +14,16 @@ function shuffleArray<T>(array: T[]): T[] {
     return array;
 }
 
+// Helper to format denominator strings like 'x + 5' or 'x - 3', handling the case where the constant is 0.
+function formatDenominator(term: string, constant: number): string {
+    if (constant === 0) {
+        return term;
+    }
+    const sign = constant > 0 ? '+' : '-';
+    return `${term} ${sign} ${Math.abs(constant)}`;
+}
+
+
 // --- EQUATIONS WITH VARIABLE DENOMINATOR ---
 function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty['id']): Question {
     const questionText = `פתור את המשוואה:`;
@@ -40,7 +50,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
             `פותחים סוגריים: ${a} = ${c}x ${c*b >= 0 ? '+' : '-'} ${Math.abs(c*b)}`,
             `מעבירים אגפים כדי לבודד את x: ${a - (c*b)} = ${c}x`,
             `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
-            `הפתרון תקין ונמצא בתחום ההגדרה.`
+            `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
         equationParts = [ { type: 'fraction', numerator: a.toString(), denominator }, { type: 'operator', value: '=' }, { type: 'term', value: c.toString() } ];
     };
@@ -68,7 +78,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
             `פותחים סוגריים: ${numStr} = ${e*c}x ${e*d >= 0 ? '+' : '-'} ${Math.abs(e*d)}`,
             `מעבירים איברים עם x לאגף אחד ומספרים לאגף השני: ${a - e*c}x = ${e*d - b}`,
             `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
-            `הפתרון תקין ונמצא בתחום ההגדרה.`,
+            `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`,
         ];
         equationParts = [ { type: 'fraction', numerator: numStr, denominator: denStr }, { type: 'operator', value: '=' }, { type: 'term', value: e.toString() } ];
     };
@@ -88,24 +98,22 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         if (a_times_b % a !== 0) a = 1;
         const b = a_times_b / a;
 
-        const denStr = `x ${c > 0 ? '+' : '-'} ${Math.abs(c)}`;
+        const denStr = formatDenominator('x', c);
         const domain = [-c];
         let valid_solutions = [x1, x2].filter(s => !domain.includes(s));
-
-        if (valid_solutions.length !== 1) {
-            return template2(); // fallback to simpler hard if we get 0 or 2 solutions
-        }
-        const valid_solution = valid_solutions[0];
         
-        solution = { value: valid_solution, domain: Array.from(new Set(domain)) };
+        solution = { value: valid_solutions.length > 0 ? valid_solutions : null, domain: Array.from(new Set(domain)) };
         explanation = `יש לבצע כפל בהצלבה כדי לקבל משוואה ריבועית.`;
+        
+        const solutionString = valid_solutions.length > 0 ? `הפתרונות התקינים הם: x = ${valid_solutions.join(' או x = ')}` : 'אין פתרונות תקינים.';
+
         detailedExplanation = [
             `תחום הגדרה: x ≠ ${-c}`,
             `מבצעים כפל בהצלבה: x(${denStr}) = ${a*b}`,
             `פותחים סוגריים ומסדרים למשוואה ריבועית: x² ${c >= 0 ? '+' : '-'} ${Math.abs(c)}x - ${a*b} = 0`,
             `הפתרונות למשוואה הריבועית הם: x = ${x1} או x = ${x2}`,
-            `בודקים את הפתרונות מול תחום ההגדרה: הפתרון x=${-c} נפסל.`,
-            `הפתרון היחיד התקין הוא: x = ${valid_solution}`
+            `בודקים את הפתרונות מול תחום ההגדרה: ${[x1,x2].filter(s => domain.includes(s)).map(s => `הפתרון x=${s} נפסל.`).join(' ')}`,
+            solutionString
         ];
         equationParts = [ { type: 'fraction', numerator: 'x', denominator: a.toString() }, { type: 'operator', value: '=' }, { type: 'fraction', numerator: b.toString(), denominator: denStr } ];
     };
@@ -124,9 +132,9 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         const a = a_val * (x_sol + b);
         const c = c_val * (x_sol + d);
 
-        const den1Str = `x ${b > 0 ? '+' : '-'} ${Math.abs(b)}`;
-        const den2Str = `x ${d > 0 ? '+' : '-'} ${Math.abs(d)}`;
-        solution = { value: x_sol, domain: [-b, -d].sort((a,b)=>a-b) };
+        const den1Str = formatDenominator('x', b);
+        const den2Str = formatDenominator('x', d);
+        solution = { value: [x_sol], domain: [-b, -d].sort((a,b)=>a-b) };
         explanation = `יש למצוא מכנה משותף, לכפול בו את כל המשוואה ולפתור.`;
         const domainString = `x ≠ ${solution.domain[0]} וגם x ≠ ${solution.domain[1]}`;
         detailedExplanation = [
@@ -134,7 +142,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
             `המכנה המשותף הוא: (${den1Str})(${den2Str})`,
             `כופלים את המשוואה במכנה המשותף ומקבלים: ${a}(${den2Str}) + ${c}(${den1Str}) = ${e}(${den1Str})(${den2Str})`,
             `לאחר פתיחת סוגריים וכינוס איברים, הפתרון שמתקבל הוא: x = ${x_sol}`,
-            `הפתרון תקין ונמצא בתחום ההגדרה.`
+            `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
         equationParts = [
              { type: 'fraction', numerator: a.toString(), denominator: den1Str },
@@ -162,8 +170,8 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         }
         const a = a_float;
 
-        const den1Str = `x ${b >= 0 ? '+' : '-'} ${Math.abs(b)}`;
-        const den2Str = `x ${d >= 0 ? '+' : '-'} ${Math.abs(d)}`;
+        const den1Str = formatDenominator('x', b);
+        const den2Str = formatDenominator('x', d);
         solution = x_sol;
         explanation = `כדי לפתור, יש לבצע כפל בהצלבה כדי להיפטר מהמכנים.`;
         detailedExplanation = [
@@ -172,7 +180,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
             `פותחים סוגריים: ${a}x ${a*d >= 0 ? '+' : '-'} ${Math.abs(a*d)} = ${c}x ${c*b >= 0 ? '+' : '-'} ${Math.abs(c*b)}`,
             `מעבירים אגפים: ${a - c}x = ${c*b - a*d}`,
             `מחלקים במקדם של x ומקבלים את הפתרון: x = ${solution}`,
-            `הפתרון תקין ונמצא בתחום ההגדרה.`
+            `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
         equationParts = [
             { type: 'fraction', numerator: a.toString(), denominator: den1Str },
@@ -192,7 +200,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         const a = a_minus_c + getRandomInt(1,10);
         const c = a - a_minus_c;
 
-        const den1Str = `x ${-b >= 0 ? '+' : '-'} ${Math.abs(-b)}`;
+        const den1Str = formatDenominator('x', -b);
         const den2Str = `${b} - x`;
 
         solution = x_sol;
@@ -204,7 +212,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
             `מאחדים שברים: (${a-c})/(${den1Str}) = ${d}`,
             `כופלים במכנה: ${a_minus_c} = ${d}(${den1Str})`,
             `פותרים ומקבלים: x = ${solution}`,
-            `הפתרון תקין ונמצא בתחום ההגדרה.`
+            `בדיקה: הפתרון תקין ונמצא בתחום ההגדרה.`
         ];
         equationParts = [
             { type: 'fraction', numerator: a.toString(), denominator: den1Str },
@@ -234,9 +242,9 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
 
         if (a === 0 || b === 0) return template4(); // fallback if params are zero
         
-        const denStr = `x ${-b >= 0 ? '+' : '-'} ${Math.abs(-b)}`;
+        const denStr = formatDenominator('x', -b);
 
-        solution = { value: x1, domain: [b] };
+        solution = { value: [x1], domain: [b] };
         explanation = `לאחר פישוט המשוואה מתקבלת משוואה ריבועית, יש לבדוק את הפתרונות מול תחום ההגדרה.`;
         detailedExplanation = [
             `תחום הגדרה: x ≠ ${b}.`,
@@ -258,42 +266,77 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
     // Template 8: Quadratic in 1/(x-b) (Hard)
     const template8 = () => {
         let b = getRandomInt(-7, 7);
-        // a*u^2 + c*u - d_val = 0
-        const u1 = getRandomInt(-4, 4);
-        let u2 = getRandomInt(-4, 4);
-        if (u1 === 0) return template4(); 
-        if (u1 === u2) u2++;
-        if (u2 === 0) u2++;
-
-        const a = 1;
-        const c = -(u1 + u2);
-        const d_val = -(u1 * u2);
+        // a*u^2 + c*u = d_val
+        const u1_num = getRandomInt(1, 4) * (Math.random() > 0.5 ? 1 : -1);
+        const u1_den = getRandomInt(1, 2);
+        const u1 = u1_num / u1_den;
         
-        const x_sol_val = 1/u1 + b;
-        if (x_sol_val % 1 !== 0) {
+        let u2_num, u2_den, u2;
+        do {
+            u2_num = getRandomInt(1, 4) * (Math.random() > 0.5 ? 1 : -1);
+            u2_den = getRandomInt(1, 2);
+            u2 = u2_num / u2_den;
+        } while (u1 === u2);
+
+        // Equation is (u-u1)(u-u2)=0 => u^2 - (u1+u2)u + u1*u2 = 0
+        const a = 1;
+        const c_float = -(u1 + u2);
+        const d_val_float = -(u1 * u2);
+
+        // Let's make c integer if possible
+        const c = Math.round(c_float);
+        const d_val = Math.round(d_val_float);
+
+        if (Math.abs(c_float-c) > 0.01 || Math.abs(d_val_float - d_val) > 0.01) {
+            return template7(); // retry if coefficients are not nice
+        }
+        
+        const x1 = 1/u1 + b;
+        const x2 = 1/u2 + b;
+
+        const domain = [b];
+        const valid_solutions = [x1, x2].filter(s => !domain.includes(s) && Math.abs(s) < 100);
+
+        if (valid_solutions.length === 0) {
             return template7(); // fallback
         }
         
-        const domain = [b];
-        solution = { value: x_sol_val, domain };
+        solution = { value: valid_solutions, domain };
         
-        const den = `x ${-b >= 0 ? '+' : '-'} ${Math.abs(-b)}`;
-        explanation = `זוהי משוואה ריבועית עבור הביטוי 1/(${den}).`;
+        const den = formatDenominator('x', -b);
+        const explanation = `זוהי משוואה ריבועית עבור הביטוי 1/(${den}).`;
+
+        const finalSolutionsString = `הפתרונות התקינים הם: ${valid_solutions.map(s => `x = ${s.toFixed(2).replace(/\.0+$/,'').replace(/\.$/,'')}`).join(' או ')}.`;
+
         detailedExplanation = [
             `תחום הגדרה: x ≠ ${b}.`,
-            `אם נסמן u = 1/(${den}), נקבל את המשוואה הריבועית: ${a}u² + ${c}u - ${d_val} = 0`,
-            `פתרונות המשוואה הריבועית הם: u = ${u1} או u = ${u2}`,
-            `נחזור ל-x. עבור u = ${u1}, נקבל: 1/(${den}) = ${u1}`,
-            `מכאן, x - ${b} = ${1/u1}, והפתרון הוא: x = ${x_sol_val}`,
-            `עבור u = ${u2}, נקבל פתרון נוסף שאינו שלם. הפתרון התקין הוא ${x_sol_val}.`
+            `אם נסמן u = 1/(${den}), נקבל את המשוואה הריבועית: ${a !== 1 ? a: ''}u² ${c >= 0 ? '+' : '-'} ${Math.abs(c)}u ${d_val > 0 ? '-' : '+'} ${Math.abs(d_val)} = 0`,
+            `פתרונות המשוואה הריבועית עבור u הם: u = ${u1} או u = ${u2}`,
+            `נחזור ל-x. עבור u = ${u1}, נקבל: 1/(${den}) = ${u1}, והפתרון הוא: x = ${x1.toFixed(2).replace(/\.0+$/,'').replace(/\.$/,'')}`,
+            `עבור u = ${u2}, נקבל: 1/(${den}) = ${u2}, והפתרון הוא: x = ${x2.toFixed(2).replace(/\.0+$/,'').replace(/\.$/,'')}`,
+            finalSolutionsString
         ];
+
+        const c_term = c > 0 ? '+' : '-';
+        const abs_c = Math.abs(c);
+        
         equationParts = [
             { type: 'fraction', numerator: a.toString(), denominator: `(${den})²` },
-            { type: 'operator', value: '+' },
-            { type: 'fraction', numerator: c.toString(), denominator: den },
+            { type: 'operator', value: c_term },
+            { type: 'fraction', numerator: abs_c.toString(), denominator: den },
             { type: 'operator', value: '=' },
             { type: 'term', value: d_val.toString() }
         ];
+        if (c < 0) { // Switch operator and term for c
+            equationParts = [
+                { type: 'fraction', numerator: a.toString(), denominator: `(${den})²` },
+                { type: 'operator', value: '-' },
+                { type: 'fraction', numerator: abs_c.toString(), denominator: den },
+                { type: 'operator', value: '=' },
+                { type: 'term', value: d_val.toString() }
+            ];
+        }
+
     };
 
 
