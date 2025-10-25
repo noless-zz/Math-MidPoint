@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase/config.ts';
+import { userList } from '../users.tsx';
 import { CrownIcon, StarIcon } from './icons.tsx';
 import { design } from '../constants/design_system.ts';
 
@@ -56,15 +57,21 @@ export default function Leaderboard({ currentUser }) {
                 
                 const usersCollection = await db.collection(FIRESTORE_COLLECTION).get();
                 
-                const leaderboardUsers = usersCollection.docs.map(doc => ({
-                    id: doc.id,
-                    username: doc.id,
-                    ...doc.data(),
-                }));
-                
-                leaderboardUsers.sort((a, b) => (b.score || 0) - (a.score || 0));
+                const scoresMap = new Map<string, number>();
+                usersCollection.docs.forEach(doc => {
+                    const data = doc.data();
+                    scoresMap.set(doc.id, data.score || 0);
+                });
 
-                setUsers(leaderboardUsers.slice(0, 50));
+                const leaderboardUsers = userList.map(username => ({
+                    id: username,
+                    username: username,
+                    score: scoresMap.get(username) || 0,
+                }));
+
+                leaderboardUsers.sort((a, b) => b.score - a.score);
+
+                setUsers(leaderboardUsers);
             } catch (err) {
                 console.error("Error fetching leaderboard from Firestore:", err);
                 setError('לא ניתן היה לטעון את דירוג המובילים.');
