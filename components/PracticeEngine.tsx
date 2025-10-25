@@ -328,7 +328,15 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
     const isEquationSolution = (sol: any): sol is EquationSolution =>  typeof sol === 'object' && sol !== null && 'value' in sol && 'domain' in sol;
     const isLineEquationSolution = (sol: any): sol is LineEquationSolution => typeof sol === 'object' && sol !== null && 'm' in sol && 'b' in sol;
     const isLineEqSolutionAnswer = (val: any): val is {m: any, b: any} => typeof val === 'object' && val !== null && 'm' in val && 'b' in val;
+    
+    const lineColors = ['stroke-blue-500', 'stroke-red-500'];
 
+    const lineEqToPoints = (line: LineEquation, range: number = 20) => {
+        return {
+            p1: { x: -range, y: line.m * -range + line.b },
+            p2: { x: range, y: line.m * range + line.b }
+        }
+    }
 
     const setupNewQuestion = useCallback((question: Question) => {
         setCurrentQuestion(question);
@@ -555,6 +563,15 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
         return userAnswer === null;
     }
 
+    const shouldShowPlane = !!currentQuestion?.points || !!currentQuestion?.lines;
+    const planeIsInteractive = currentQuestion?.type === 'FIND_MIDPOINT_VISUAL';
+
+    const handlePlaneClick = (point: Point) => {
+        if (planeIsInteractive) {
+            setUserAnswer(point);
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto space-y-4">
              <div className="flex justify-between items-center px-2">
@@ -570,21 +587,45 @@ const PracticeSession = ({ config, updateUser, onBack }) => {
                 <div className="flex flex-col text-right">
                     <h3 className="text-base font-semibold text-gray-600 dark:text-gray-400">{getSubjectNameFromType(currentQuestion.type)}:</h3>
                     
-                    <div className="my-4 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                        <div className="text-xl md:text-2xl font-bold my-2 text-gray-800 dark:text-gray-100">
-                           <ColoredText text={currentQuestion.question} />
+                    <div className={`grid grid-cols-1 ${shouldShowPlane ? 'lg:grid-cols-2' : ''} gap-x-8 items-start`}>
+                        {/* Main content: question text and inputs */}
+                        <div className={!shouldShowPlane ? 'lg:col-span-2' : ''}>
+                            <div className="my-4 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                                <div className="text-xl md:text-2xl font-bold my-2 text-gray-800 dark:text-gray-100">
+                                    <ColoredText text={currentQuestion.question} />
+                                </div>
+                                {currentQuestion.equationParts && <EquationDisplay parts={currentQuestion.equationParts} />}
+                            </div>
+                            
+                            {!feedback ? (
+                                <>
+                                    {renderAnswerArea()}
+                                    {renderRevealedHints()}
+                                </>
+                            ) : null}
                         </div>
-                        {currentQuestion.equationParts && <EquationDisplay parts={currentQuestion.equationParts} />}
+
+                        {/* Coordinate Plane */}
+                        {shouldShowPlane && (
+                            <div className="my-4">
+                                <CoordinatePlane
+                                    points={currentQuestion.points}
+                                    lines={currentQuestion.lines?.map((l, i) => ({
+                                        ...lineEqToPoints(l),
+                                        color: lineColors[i % lineColors.length]
+                                    }))}
+                                    onClick={planeIsInteractive ? handlePlaneClick : undefined}
+                                    userAnswer={planeIsInteractive && isPoint(userAnswer) ? userAnswer : undefined}
+                                    solution={feedback && isPoint(currentQuestion.solution) ? currentQuestion.solution : undefined}
+                                />
+                            </div>
+                        )}
                     </div>
                        
                     {!feedback ? (
-                        <>
-                            {renderAnswerArea()}
-                            {renderRevealedHints()}
-                            <button onClick={checkAnswer} disabled={isAnswerEmpty()} className={`w-full mt-8 py-3 px-4 rounded-lg font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed`}>
-                                בדוק/י תשובה
-                            </button>
-                        </>
+                        <button onClick={checkAnswer} disabled={isAnswerEmpty()} className={`w-full mt-8 py-3 px-4 rounded-lg font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed`}>
+                            בדוק/י תשובה
+                        </button>
                     ) : (
                         <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-right">
                            <h3 className="text-2xl font-bold mb-2">{feedback.isCorrect ? 'כל הכבוד!' : 'תשובה שגויה'}</h3>

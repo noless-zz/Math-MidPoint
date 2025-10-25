@@ -20,9 +20,20 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
   // 1. Auto-zoom logic to create a dynamic view
   const { xRange, yRange, center } = useMemo(() => {
     const allPoints: Point[] = Object.values(points).filter(Boolean).map(p => p);
+    
+    lines.forEach(line => {
+      if (line.p1) allPoints.push(line.p1);
+      if (line.p2) allPoints.push(line.p2);
+    });
+
     if (triangle) allPoints.push(...triangle);
     if (userAnswer) allPoints.push(userAnswer);
     if (solution) allPoints.push(solution);
+    
+    // Add origin to ensure axes are considered in the bounding box calculation
+    if (allPoints.length > 0) {
+        allPoints.push({ x: 0, y: 0 });
+    }
 
     if (allPoints.length === 0) {
       return { xRange: 15, yRange: 15, center: { x: 0, y: 0 } };
@@ -52,7 +63,7 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
         y: (minY + maxY) / 2,
       },
     };
-  }, [points, triangle, userAnswer, solution]);
+  }, [points, lines, triangle, userAnswer, solution]);
 
   // 2. Updated coordinate conversion functions using dynamic range
   const toSvgCoords = useCallback((p: Point): { x: number; y: number } => {
@@ -119,7 +130,7 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
         const svgX = toSvgCoords({ x, y: 0 }).x;
         elements.push(<line key={`v-${x}`} x1={svgX} y1={0} x2={svgX} y2={VIEWBOX_SIZE} className={isAxis ? "stroke-gray-400 dark:stroke-gray-500" : "stroke-gray-200 dark:stroke-gray-700"} strokeWidth={isAxis ? 1 : 0.5} />);
         if (!isAxis) {
-            elements.push(<text key={`v-label-${x}`} x={svgX} y={xAxisLabelY} textAnchor="middle" className="fill-current text-[10px]">{x}</text>);
+            elements.push(<text key={`v-label-${x}`} x={svgX} y={xAxisLabelY} textAnchor="middle" className="fill-current text-[10px]">{`\u200E${x}`}</text>);
         } else {
             elements.push(<text key={`v-label-0`} x={svgX + 2} y={xAxisLabelY} textAnchor="start" className="fill-current text-[10px]">0</text>);
         }
@@ -134,7 +145,7 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
         const svgY = toSvgCoords({ x: 0, y }).y;
         elements.push(<line key={`h-${y}`} x1={0} y1={svgY} x2={VIEWBOX_SIZE} y2={svgY} className={isAxis ? "stroke-gray-400 dark:stroke-gray-500" : "stroke-gray-200 dark:stroke-gray-700"} strokeWidth={isAxis ? 1 : 0.5} />);
         if (!isAxis) {
-            elements.push(<text key={`h-label-${y}`} x={yAxisLabelX} y={svgY + 4} textAnchor={yAxisLabelAnchor} className="fill-current text-[10px]">{y}</text>);
+            elements.push(<text key={`h-label-${y}`} x={yAxisLabelX} y={svgY + 4} textAnchor={yAxisLabelAnchor} className="fill-current text-[10px]">{`\u200E${y}`}</text>);
         }
     }
 
@@ -201,7 +212,7 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
           <g key={`point-group-${key}`}>
             <circle cx={svgP.x} cy={svgP.y} r="6" className={color} />
             <text x={labelX} y={labelY} className="fill-current text-sm select-none pointer-events-none font-bold" style={{ textAnchor }}>
-              {`${key}(${p.x},${p.y})`}
+              {`${key}(${`\u200E${p.x}`},${`\u200E${p.y}`})`}
             </text>
           </g>
         );
@@ -215,7 +226,7 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
             const { x: labelX, y: labelY, textAnchor } = getLabelPosition(svgP);
             return (
               <text x={labelX} y={labelY} className="fill-current text-sm select-none pointer-events-none font-bold" style={{ textAnchor }}>
-                {`תשובה (${userAnswer.x},${userAnswer.y})`}
+                {`תשובה (${`\u200E${userAnswer.x}`},${`\u200E${userAnswer.y}`})`}
               </text>
             );
           })()}
