@@ -3,7 +3,7 @@ import { db } from '../firebase/config.ts';
 import { CrownIcon, StarIcon } from './icons.tsx';
 import { design } from '../constants/design_system.ts';
 
-const USER_COLLECTION = 'midpointMasterUsers';
+const FIRESTORE_COLLECTION = 'scores_aloni_yitzhak_10_4';
 
 interface LeaderboardRowProps {
     user: {
@@ -44,52 +44,37 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, rank, isCurrentUs
 
 
 export default function Leaderboard({ currentUser }) {
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
                 setLoading(true);
                 setError(null);
-                const usersRef = db.collection(USER_COLLECTION);
-                const q = usersRef.orderBy('score', 'desc').limit(50);
-                const querySnapshot = await q.get();
                 
-                const leaderboardUsers = [];
-                querySnapshot.forEach((doc) => {
-                    leaderboardUsers.push({ id: doc.id, ...doc.data() });
-                });
+                const usersCollection = await db.collection(FIRESTORE_COLLECTION).get();
                 
-                setUsers(leaderboardUsers);
+                const leaderboardUsers = usersCollection.docs.map(doc => ({
+                    id: doc.id,
+                    username: doc.id,
+                    ...doc.data(),
+                }));
+                
+                leaderboardUsers.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+                setUsers(leaderboardUsers.slice(0, 50));
             } catch (err) {
-                console.error("Error fetching leaderboard:", err);
+                console.error("Error fetching leaderboard from Firestore:", err);
                 setError('לא ניתן היה לטעון את דירוג המובילים.');
             } finally {
                 setLoading(false);
             }
         };
 
-        if (!currentUser.isGuest) {
-            fetchLeaderboard();
-        } else {
-            setUsers([]); // Don't show leaderboard for guests
-            setLoading(false);
-        }
-    }, [currentUser]);
-    
-    if (currentUser.isGuest) {
-        return (
-            <div className={`text-center ${design.layout.card} ${design.layout.leaderboard}`}>
-                <h2 className={`${design.typography.sectionTitle} mb-4`}>לוח המובילים</h2>
-                <p className={`text-lg ${design.colors.text.muted.light} dark:${design.colors.text.muted.dark}`}>
-                    תכונה זו זמינה רק למשתמשים רשומים. <br/>
-                    התחבר עם חשבון גוגל כדי לראות את הדירוג ולהתחרות!
-                </p>
-            </div>
-        );
-    }
+        fetchLeaderboard();
+    }, []);
     
     if (loading) {
         return (
@@ -107,6 +92,17 @@ export default function Leaderboard({ currentUser }) {
         );
     }
 
+    if (users.length === 0 && !loading) {
+         return (
+             <div className={design.layout.leaderboard}>
+                <h2 className={`${design.typography.pageTitle}`}>לוח המובילים</h2>
+                <div className="text-center p-10 bg-white dark:bg-gray-800 rounded-lg">
+                    <p className="text-lg text-gray-500 dark:text-gray-400">עדיין אין נתונים להצגה. התחילו לתרגל כדי להופיע בדירוג!</p>
+                </div>
+            </div>
+         );
+    }
+
     return (
         <div className={design.layout.leaderboard}>
             <h2 className={`${design.typography.pageTitle}`}>לוח המובילים</h2>
@@ -117,7 +113,7 @@ export default function Leaderboard({ currentUser }) {
                         key={user.id}
                         user={user}
                         rank={index + 1}
-                        isCurrentUser={user.id === currentUser.uid}
+                        isCurrentUser={currentUser && user.id === currentUser.uid}
                     />
                 ))}
             </div>
