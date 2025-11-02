@@ -23,6 +23,35 @@ function formatDenominator(term: string, constant: number): string {
     return `${term} ${sign} ${Math.abs(constant)}`;
 }
 
+// Helper to format numbers nicely for display, removing trailing .00
+function formatNumber(n: number): string {
+    return parseFloat(n.toFixed(2)).toString();
+}
+
+// Helper to format y = mx + b equations nicely
+function formatLineEquation(m: number, b: number): string {
+    let mPart = '';
+    if (m !== 0) {
+        if (m === 1) mPart = 'x';
+        else if (m === -1) mPart = '-x';
+        else mPart = `${formatNumber(m)}x`;
+    }
+
+    if (b === 0) {
+        return `y = ${mPart || '0'}`;
+    }
+
+    // b is not 0
+    const bSign = b > 0 ? '+' : '-';
+    const bAbs = formatNumber(Math.abs(b));
+    
+    if (m === 0) {
+        return `y = ${formatNumber(b)}`;
+    }
+    
+    return `y = ${mPart} ${bSign} ${bAbs}`;
+}
+
 
 // --- EQUATIONS WITH VARIABLE DENOMINATOR ---
 function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty['id']): Omit<Question, 'subjectId'> {
@@ -73,7 +102,7 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         solution = { value: [x_sol], domain: [-d/c] };
         explanation = `כדי לבטל את המכנה, יש לכפול את שני האגפים ב-${denStr}.`;
         detailedExplanation = [
-            `תחום הגדרה: המכנה לא יכול להיות אפס, לכן x ≠ ${(-d/c).toFixed(2)}.`,
+            `תחום הגדרה: המכנה לא יכול להיות אפס, לכן x ≠ ${formatNumber(-d/c)}.`,
             `כופלים את שני האגפים במכנה: ${numStr} = ${e}(${denStr})`,
             `פותחים סוגריים: ${numStr} = ${e*c}x ${e*d >= 0 ? '+' : '-'} ${Math.abs(e*d)}`,
             `מעבירים איברים עם x לאגף אחד ומספרים לאגף השני: ${a - e*c}x = ${e*d - b}`,
@@ -105,15 +134,22 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         solution = { value: valid_solutions.length > 0 ? valid_solutions : null, domain: Array.from(new Set(domain)) };
         explanation = `יש לבצע כפל בהצלבה כדי לקבל משוואה ריבועית.`;
         
-        const solutionString = valid_solutions.length > 0 ? `הפתרונות התקינים הם: x = ${valid_solutions.join(' או x = ')}` : 'אין פתרונות תקינים.';
+        const extraneousSolutions = [x1, x2].filter(s => domain.includes(s));
+        const checkString = extraneousSolutions.length > 0
+            ? `הפתרון ${extraneousSolutions.map(s => `x=${s}`).join(' ו-')} נפסל מכיוון שאינו בתחום ההגדרה.`
+            : 'שני הפתרונות נמצאים בתחום ההגדרה.';
+
+        const finalSolutionString = valid_solutions.length > 0
+            ? `הפתרון/נות התקין/ים הוא/הם: x = ${valid_solutions.join(' או x = ')}`
+            : 'למשוואה אין פתרון תקין.';
 
         detailedExplanation = [
-            `תחום הגדרה: x ≠ ${-c}`,
+            `תחום הגדרה: המכנה לא יכול להיות אפס, ולכן x ≠ ${-c}.`,
             `מבצעים כפל בהצלבה: x(${denStr}) = ${a*b}`,
             `פותחים סוגריים ומסדרים למשוואה ריבועית: x² ${c >= 0 ? '+' : '-'} ${Math.abs(c)}x - ${a*b} = 0`,
             `הפתרונות למשוואה הריבועית הם: x = ${x1} או x = ${x2}`,
-            `בודקים את הפתרונות מול תחום ההגדרה: ${[x1,x2].filter(s => domain.includes(s)).map(s => `הפתרון x=${s} נפסל.`).join(' ')}`,
-            solutionString
+            `בדיקת הפתרונות: ${checkString}`,
+            `לסיכום, ${finalSolutionString}`
         ];
         equationParts = [ { type: 'fraction', numerator: 'x', denominator: a.toString() }, { type: 'operator', value: '=' }, { type: 'fraction', numerator: b.toString(), denominator: denStr } ];
     };
@@ -247,12 +283,12 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         solution = { value: [x1], domain: [b] };
         explanation = `לאחר פישוט המשוואה מתקבלת משוואה ריבועית, יש לבדוק את הפתרונות מול תחום ההגדרה.`;
         detailedExplanation = [
-            `תחום הגדרה: x ≠ ${b}.`,
+            `תחום הגדרה: המכנה לא יכול להיות אפס, ולכן x ≠ ${b}.`,
             `כופלים את כל המשוואה במכנה (${denStr}): x(${denStr}) + ${a} = ${new_c}(${denStr})`,
             `פותחים סוגריים ומסדרים למשוואה ריבועית: x² - (${b+new_c})x + (${a + new_c*b}) = 0`,
-            `הפתרונות למשוואה הריבועית הם: x = ${x1} או x = ${x2}`,
-            `בודקים את הפתרונות מול תחום ההגדרה: הפתרון x=${x2} נפסל.`,
-            `הפתרון היחיד התקין הוא: x = ${x1}`
+            `פתרונות המשוואה הריבועית הם: x = ${x1} או x = ${x2}`,
+            `בדיקת הפתרונות: הפתרון x=${x2} נפסל מכיוון שאינו בתחום ההגדרה.`,
+            `לסיכום, הפתרון היחיד התקין הוא: x = ${x1}`
         ];
         equationParts = [
             { type: 'term', value: 'x' },
@@ -306,14 +342,14 @@ function generateEquationsWithVariableDenominatorQuestion(difficulty: Difficulty
         const den = formatDenominator('x', -b);
         const explanation = `זוהי משוואה ריבועית עבור הביטוי 1/(${den}).`;
 
-        const finalSolutionsString = `הפתרונות התקינים הם: ${valid_solutions.map(s => `x = ${s.toFixed(2).replace(/\.0+$/,'').replace(/\.$/,'')}`).join(' או ')}.`;
+        const finalSolutionsString = `הפתרונות התקינים הם: ${valid_solutions.map(s => `x = ${formatNumber(s)}`).join(' או ')}.`;
 
         detailedExplanation = [
             `תחום הגדרה: x ≠ ${b}.`,
             `אם נסמן u = 1/(${den}), נקבל את המשוואה הריבועית: ${a !== 1 ? a: ''}u² ${c >= 0 ? '+' : '-'} ${Math.abs(c)}u ${d_val > 0 ? '-' : '+'} ${Math.abs(d_val)} = 0`,
             `פתרונות המשוואה הריבועית עבור u הם: u = ${u1} או u = ${u2}`,
-            `נחזור ל-x. עבור u = ${u1}, נקבל: 1/(${den}) = ${u1}, והפתרון הוא: x = ${x1.toFixed(2).replace(/\.0+$/,'').replace(/\.$/,'')}`,
-            `עבור u = ${u2}, נקבל: 1/(${den}) = ${u2}, והפתרון הוא: x = ${x2.toFixed(2).replace(/\.0+$/,'').replace(/\.$/,'')}`,
+            `נחזור ל-x. עבור u = ${u1}, נקבל: 1/(${den}) = ${u1}, והפתרון הוא: x = ${formatNumber(x1)}`,
+            `עבור u = ${u2}, נקבל: 1/(${den}) = ${u2}, והפתרון הוא: x = ${formatNumber(x2)}`,
             finalSolutionsString
         ];
 
@@ -515,7 +551,7 @@ function generateSlopeQuestion(difficulty: Difficulty['id']): Omit<Question, 'su
         detailedExplanation: [
             `נציב את שיעורי הנקודות בנוסחת השיפוע: m = (${p2.y} - ${p1.y}) / (${p2.x} - ${p1.x})`,
             `נחשב את ההפרש במונה ובמכנה: m = ${p2.y - p1.y} / ${p2.x - p1.x}`,
-            `השיפוע הוא: ${slope.toFixed(2)}`
+            `השיפוע הוא: ${formatNumber(slope)}`
         ],
         difficulty,
     };
@@ -553,7 +589,7 @@ function generateDistanceQuestion(difficulty: Difficulty['id']): Omit<Question, 
            `מעלים בריבוע: d = √
 - (${dx**2} + ${dy**2})`,
            `המרחק הוא: d = √
-- (${dx**2 + dy**2}) = ${distance.toFixed(2)}`,
+- (${dx**2 + dy**2}) = ${formatNumber(distance)}`,
         ],
         difficulty,
     };
@@ -575,7 +611,7 @@ function generatePerpendicularSlopeQuestion(difficulty: Difficulty['id']): Omit<
         const b = getRandomInt(-10, 10);
         questionText = `מהו שיפוע הישר המאונך לישר ${num}x ${b >= 0 ? '+' : '-'} ${Math.abs(b)}y = ${getRandomInt(1, 20)}?`;
         if (difficulty === 'medium' || Math.random() > 0.5) {
-             questionText = `מהו שיפוע הישר המאונך לישר y = ${m1.toFixed(2)}x ${b >= 0 ? '+' : '-'} ${Math.abs(b)}?`;
+             questionText = `מהו שיפוע הישר המאונך לישר ${formatLineEquation(m1, b)}?`;
         }
     }
     
@@ -587,10 +623,10 @@ function generatePerpendicularSlopeQuestion(difficulty: Difficulty['id']): Omit<
         solution: solution,
         explanation: `שיפוע של ישר מאונך הוא הופכי ונגדי לשיפוע המקורי (m2 = -1/m1).`,
         detailedExplanation: [
-            `השיפוע של הישר הנתון הוא m1 = ${m1.toFixed(2)}.`,
+            `השיפוע של הישר הנתון הוא: m1 = ${formatNumber(m1)}.`,
             `השיפוע של הישר המאונך, m2, מקיים: m1 * m2 = -1.`,
-            `לכן, יש לחשב: m2 = -1 / ${m1.toFixed(2)}`,
-            `השיפוע המאונך הוא: ${solution.toFixed(2)}.`
+            `לכן, יש לחשב: m2 = -1 / ${formatNumber(m1)}`,
+            `השיפוע המאונך הוא: ${formatNumber(solution)}.`
         ],
         difficulty,
     };
@@ -612,8 +648,8 @@ function generateIntersectionQuestion(difficulty: Difficulty['id']): Omit<Questi
         const y = m1 * x + b1;
         intersection = { x, y };
         
-        line1 = { m: m1, b: b1, text: `y = ${m1}x ${b1 >= 0 ? '+' : '-'} ${Math.abs(b1)}` };
-        line2 = { m: m2, b: b2, text: `y = ${m2}x ${b2 >= 0 ? '+' : '-'} ${Math.abs(b2)}` };
+        line1 = { m: m1, b: b1, text: formatLineEquation(m1, b1) };
+        line2 = { m: m2, b: b2, text: formatLineEquation(m2, b2) };
 
     } while (difficulty !== 'hard' && (intersection.x % 1 !== 0 || intersection.y % 1 !== 0));
 
@@ -625,11 +661,11 @@ function generateIntersectionQuestion(difficulty: Difficulty['id']): Omit<Questi
         solution: intersection,
         explanation: `כדי למצוא את נקודת החיתוך, יש להשוות בין שתי משוואות הישרים.`,
         detailedExplanation: [
-            `משווים את שתי המשוואות: ${line1.m}x ${line1.b >= 0 ? '+' : '-'} ${Math.abs(line1.b)} = ${line2.m}x ${line2.b >= 0 ? '+' : '-'} ${Math.abs(line2.b)}`,
-            `מעבירים את האיברים עם x לאגף אחד ואת המספרים לאגף השני: ${line1.m - line2.m}x = ${line2.b - line1.b}`,
-            `פותרים ומקבלים: x = ${intersection.x.toFixed(2)}`,
-            `מציבים את ערך ה-x באחת המשוואות כדי למצוא את y: y = ${line1.m} * (${intersection.x.toFixed(2)}) + ${line1.b} = ${intersection.y.toFixed(2)}`,
-            `נקודת החיתוך היא: (${intersection.x.toFixed(2)}, ${intersection.y.toFixed(2)}).`
+            `משווים את שתי המשוואות: ${line1.text.replace('y = ', '')} = ${line2.text.replace('y = ', '')}`,
+            `מעבירים את האיברים עם x לאגף אחד ואת המספרים לאגף השני: ${formatNumber(line1.m - line2.m)}x = ${formatNumber(line2.b - line1.b)}`,
+            `פותרים ומקבלים: x = ${formatNumber(intersection.x)}`,
+            `מציבים את ערך ה-x באחת המשוואות כדי למצוא את y: y = ${formatNumber(line1.m)} * (${formatNumber(intersection.x)}) + (${formatNumber(line1.b)}) = ${formatNumber(intersection.y)}`,
+            `נקודת החיתוך היא: (${formatNumber(intersection.x)}, ${formatNumber(intersection.y)}).`
         ],
         difficulty,
     };
@@ -675,10 +711,10 @@ function generateLineEquationQuestion(difficulty: Difficulty['id']): Omit<Questi
         solution: { m, b },
         explanation: `ראשית, יש למצוא את השיפוע (m), ולאחר מכן להציב אותו ואחת הנקודות בנוסחת הישר כדי למצוא את b.`,
         detailedExplanation: [
-            `נחשב את השיפוע: m = (${p2.y} - ${p1.y}) / (${p2.x} - ${p1.x}) = ${p2.y - p1.y} / ${p2.x - p1.x} = ${m.toFixed(2)}`,
-            `נציב את השיפוע ואת נקודה A במשוואת הישר y = mx + b: ${p1.y} = (${m.toFixed(2)}) * ${p1.x} + b`,
-            `נפתור עבור b: ${p1.y} = ${(m * p1.x).toFixed(2)} + b  =>  b = ${b.toFixed(2)}`,
-            `משוואת הישר היא: y = ${m.toFixed(2)}x + ${b.toFixed(2)}`
+            `נחשב את השיפוע: m = (${p2.y} - ${p1.y}) / (${p2.x} - ${p1.x}) = ${p2.y - p1.y} / ${p2.x - p1.x} = ${formatNumber(m)}`,
+            `נציב את השיפוע ואת נקודה A במשוואת הישר y = mx + b: ${p1.y} = (${formatNumber(m)}) * (${p1.x}) + b`,
+            `נפתור עבור b: ${p1.y} = ${formatNumber(m * p1.x)} + b  =>  b = ${formatNumber(b)}`,
+            `משוואת הישר היא: ${formatLineEquation(m, b)}`
         ],
         difficulty,
     };

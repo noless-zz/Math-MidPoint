@@ -3,7 +3,9 @@ import { Point } from '../types.ts';
 import { design } from '../constants/design_system.ts';
 
 interface CoordinatePlaneProps {
-  points?: { [key: string]: Point };
+  // Fix: The 'points' object can have undefined values for some keys (e.g. { A: point, B: undefined }).
+  // The type is updated to reflect this, which fixes the type inference for `p` in the `Object.entries` map.
+  points?: { [key: string]: Point | undefined };
   lines?: { p1: Point; p2: Point; color: string }[];
   triangle?: [Point, Point, Point];
   onClick?: (point: Point) => void;
@@ -193,8 +195,7 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
       
       {triangle && (
         <polygon 
-          // Fix: Explicitly typed 'p' as Point to resolve incorrect type inference.
-          points={triangle.map((p: Point) => `${toSvgCoords(p).x},${toSvgCoords(p).y}`).join(' ')}
+          points={triangle.map(p => `${toSvgCoords(p).x},${toSvgCoords(p).y}`).join(' ')}
           className="fill-indigo-500/20 stroke-indigo-500 stroke-2"
         />
       )}
@@ -207,14 +208,18 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
 
       {Object.entries(points).map(([key, p]) => {
         if (!p) return null;
-        const svgP = toSvgCoords(p);
+        // Fix: Cast `p` to `Point` after the type guard. This resolves an issue where
+        // TypeScript infers `p` as `unknown` due to a strict configuration or type
+        // inference limitation with `Object.entries`.
+        const point = p as Point;
+        const svgP = toSvgCoords(point);
         const { x: labelX, y: labelY, textAnchor } = getLabelPosition(svgP);
         const color = design.pointColors[key]?.fill || 'fill-gray-500';
         return (
           <g key={`point-group-${key}`}>
             <circle cx={svgP.x} cy={svgP.y} r="6" className={color} />
             <text x={labelX} y={labelY} className="fill-current text-sm select-none pointer-events-none font-bold" style={{ textAnchor }}>
-              {`${key}(${`\u200E${p.x}`},${`\u200E${p.y}`})`}
+              {`${key}(${`\u200E${point.x}`},${`\u200E${point.y}`})`}
             </text>
           </g>
         );

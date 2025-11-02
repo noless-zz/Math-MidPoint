@@ -78,12 +78,13 @@ const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ ste
         contentPart.includes('≠') || 
         contentPart.includes('(') || 
         contentPart.includes(')') ||
-        contentPart.includes('²')
+        contentPart.includes('²') ||
+        /^\s*[-.m\d]/.test(contentPart) // Starts with space, then -, ., m, or digit
     );
 
 
     return (
-        <div className="flex items-start gap-x-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex items-start gap-x-4 p-4">
             {/* Step Number */}
             <div className="flex-shrink-0 w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-md mt-1">
                 {index + 1}
@@ -93,8 +94,8 @@ const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ ste
                 <p className="font-semibold text-gray-800 dark:text-gray-200">{textPart}</p>
                 {contentPart && (
                      isMathContent ? (
-                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/50 border-l-4 border-purple-500 rounded-md">
-                            <p dir="ltr" className="text-center text-lg">{contentPart}</p>
+                        <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
+                            <p dir="ltr" className="text-center text-lg font-mono">{contentPart}</p>
                         </div>
                      ) : (
                         <p className="mt-1 text-gray-700 dark:text-gray-300">{contentPart}</p>
@@ -108,7 +109,7 @@ const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ ste
 const ExplanationRenderer: React.FC<{ steps: string[], title: string }> = ({ steps, title }) => (
     <div className="mt-6">
         <h4 className="font-bold text-xl mb-4 text-right">{title}</h4>
-        <div className="space-y-3">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
             {steps.map((step, index) => (
                 <ExplanationStepDisplay key={index} step={step} index={index} />
             ))}
