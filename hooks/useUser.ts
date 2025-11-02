@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useCallback } from 'react';
 import { db, firebase, auth } from '../firebase/config.ts';
 
@@ -39,6 +40,7 @@ interface User {
   lastPlayed?: firebase.firestore.Timestamp;
   dailyStats?: UserStats;
   weeklyStats?: UserStats;
+  isGuest?: boolean;
 }
 
 export function useUser() {
@@ -158,6 +160,20 @@ export function useUser() {
     setLoading(false);
   }, [loadUserFromFirestore]);
 
+  const loginAsGuest = useCallback(() => {
+    setLoading(true);
+    const guestUser: User = {
+      uid: `guest_${Date.now()}`,
+      username: 'אורח/ת',
+      score: 0,
+      completedExercises: 0,
+      isGuest: true,
+      scoresBySubject: {},
+    };
+    setUser(guestUser);
+    setLoading(false);
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(CURRENT_USER_KEY);
@@ -165,11 +181,7 @@ export function useUser() {
 
   const updateUser = useCallback((scoreToAdd: number, exercisesToAdd: number, subjectId: string) => {
     if (!user) return;
-    if (!auth.currentUser) {
-        console.error("[DEBUG][ERROR] Attempted to update Firestore, but `auth.currentUser` is null.");
-        return;
-    }
-    
+
     const today = new Date();
     const currentDate = formatDate(today);
     const currentWeekId = formatDate(getStartOfWeek(today));
@@ -195,6 +207,16 @@ export function useUser() {
         updatedUser.weeklyStats.scoresBySubject[subjectId] = (updatedUser.weeklyStats.scoresBySubject[subjectId] || 0) + scoreToAdd;
     }
     setUser(updatedUser);
+
+    // If user is a guest, do not persist data to Firestore
+    if (user.isGuest) {
+        return;
+    }
+    
+    if (!auth.currentUser) {
+        console.error("[DEBUG][ERROR] Attempted to update Firestore, but `auth.currentUser` is null.");
+        return;
+    }
 
     // --- Prepare Firestore update object ---
     const firestoreUpdate: { [key: string]: any } = {
@@ -230,5 +252,5 @@ export function useUser() {
     });
   }, [user]);
 
-  return { user, loading, login, logout, updateUser };
+  return { user, loading, login, logout, updateUser, loginAsGuest };
 }

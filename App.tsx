@@ -10,7 +10,7 @@ import Leaderboard from './components/Leaderboard.tsx';
 import { design } from './constants/design_system.ts';
 
 export default function App() {
-  const { user, loading, login, logout, updateUser } = useUser();
+  const { user, loading, login, logout, updateUser, loginAsGuest } = useUser();
   const [view, setView] = React.useState(View.Dashboard);
 
   const handleNavigate = React.useCallback((newView) => {
@@ -40,7 +40,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginScreen onLogin={login} />;
+    return <LoginScreen onLogin={login} onLoginAsGuest={loginAsGuest} />;
   }
 
   return (

@@ -10,7 +10,7 @@ const getFamilyNameInitial = (fullName: string): string => {
     return fullName.trim()[0] || '';
 };
 
-export default function LoginScreen({ onLogin }: { onLogin: (username: string) => void }) {
+export default function LoginScreen({ onLogin, onLoginAsGuest }: { onLogin: (username: string) => void; onLoginAsGuest: () => void; }) {
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
 
     const filteredUsers = useMemo(() => {
@@ -74,6 +74,22 @@ export default function LoginScreen({ onLogin }: { onLogin: (username: string) =
                         </button>
                     </div>
                 )}
+
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div className="w-full border-t border-gray-300 dark:border-gray-700" />
+                    </div>
+                    <div className="relative flex justify-center">
+                        <span className={`px-2 bg-white dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400`}>או</span>
+                    </div>
+                </div>
+
+                <button
+                    onClick={onLoginAsGuest}
+                    className={`w-full ${design.components.button.base} bg-gray-600 hover:bg-gray-700 text-white`}
+                >
+                    התחבר/י כאורח/ת
+                </button>
             </div>
         </div>
     );

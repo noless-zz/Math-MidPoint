@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../firebase/config.ts';
 import { userList } from '../users.tsx';
 import { CrownIcon, StarIcon, SleepingIcon } from './icons.tsx';
@@ -149,7 +149,7 @@ export default function Leaderboard({ currentUser }) {
                     });
                 });
 
-                const allUsers: LeaderboardUser[] = userList.map(username => scoresMap.get(username) || {
+                const allDBUsers: LeaderboardUser[] = userList.map(username => scoresMap.get(username) || {
                     id: username,
                     username: username,
                     score: 0,
@@ -157,7 +157,7 @@ export default function Leaderboard({ currentUser }) {
                 });
 
                 // All-Time Leaders
-                const sortedAllTime = [...allUsers].sort((a, b) => b.score - a.score);
+                const sortedAllTime = [...allDBUsers].sort((a, b) => b.score - a.score);
                 setAllTimeUsers(sortedAllTime);
 
                 const today = new Date();
@@ -165,7 +165,7 @@ export default function Leaderboard({ currentUser }) {
                 const currentWeekId = formatDate(getStartOfWeek(today));
 
                 // Daily Top Leader
-                const dailyActiveUsers = allUsers.filter(u => u.dailyStats?.periodId === currentDate);
+                const dailyActiveUsers = allDBUsers.filter(u => u.dailyStats?.periodId === currentDate);
                 if (dailyActiveUsers.length > 0) {
                     const sortedDaily = dailyActiveUsers.sort((a,b) => b.dailyStats!.score - a.dailyStats!.score);
                     setDailyTopLeader({ username: sortedDaily[0].username, score: sortedDaily[0].dailyStats!.score });
@@ -175,7 +175,7 @@ export default function Leaderboard({ currentUser }) {
                 }
 
                 // Weekly Top Leader
-                const weeklyActiveUsers = allUsers.filter(u => u.weeklyStats?.periodId === currentWeekId);
+                const weeklyActiveUsers = allDBUsers.filter(u => u.weeklyStats?.periodId === currentWeekId);
                  if (weeklyActiveUsers.length > 0) {
                     const sortedWeekly = weeklyActiveUsers.sort((a,b) => b.weeklyStats!.score - a.weeklyStats!.score);
                     setWeeklyTopLeader({ username: sortedWeekly[0].username, score: sortedWeekly[0].weeklyStats!.score });
@@ -192,7 +192,7 @@ export default function Leaderboard({ currentUser }) {
                     let topUser: LeaderboardUser | null = null;
                     let maxScore = -1;
 
-                    allUsers.forEach(user => {
+                    allDBUsers.forEach(user => {
                         if(user.weeklyStats?.periodId === currentWeekId) {
                             const userScore = user.weeklyStats.scoresBySubject?.[subject.id] || 0;
                             if (userScore > maxScore) {
@@ -221,6 +221,19 @@ export default function Leaderboard({ currentUser }) {
 
         fetchLeaderboard();
     }, []);
+
+    const displayedUsers = useMemo(() => {
+        if (currentUser?.isGuest) {
+            const guestUserEntry: LeaderboardUser = {
+                id: currentUser.uid,
+                username: currentUser.username,
+                score: currentUser.score,
+            };
+            const combined = [...allTimeUsers, guestUserEntry];
+            return combined.sort((a, b) => b.score - a.score);
+        }
+        return allTimeUsers;
+    }, [allTimeUsers, currentUser]);
     
     if (loading) {
         return (
@@ -238,7 +251,7 @@ export default function Leaderboard({ currentUser }) {
         );
     }
 
-    if (allTimeUsers.length === 0 && !loading) {
+    if (displayedUsers.length === 0 && !loading) {
          return (
              <div className={design.layout.leaderboard}>
                 <h2 className={`${design.typography.pageTitle}`}>לוח המובילים</h2>
@@ -263,7 +276,7 @@ export default function Leaderboard({ currentUser }) {
             <div className="mt-8">
                 <h3 className="text-2xl font-bold text-right mb-4">דירוג כללי</h3>
                 <div className="space-y-3">
-                    {allTimeUsers.map((user, index) => (
+                    {displayedUsers.map((user, index) => (
                         <LeaderboardRow 
                             key={user.id}
                             user={user}
