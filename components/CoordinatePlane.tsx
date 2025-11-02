@@ -19,7 +19,8 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
 
   // 1. Auto-zoom logic to create a dynamic view
   const { xRange, yRange, center } = useMemo(() => {
-    const allPoints: Point[] = Object.values(points).filter(Boolean).map(p => p);
+    // Fix: Used a type guard in the filter to ensure correct type inference for allPoints.
+    const allPoints: Point[] = Object.values(points).filter((p): p is Point => !!p);
     
     lines.forEach(line => {
       if (line.p1) allPoints.push(line.p1);
@@ -192,7 +193,8 @@ const CoordinatePlane: React.FC<CoordinatePlaneProps> = ({ points = {}, lines = 
       
       {triangle && (
         <polygon 
-          points={triangle.map(p => `${toSvgCoords(p).x},${toSvgCoords(p).y}`).join(' ')}
+          // Fix: Explicitly typed 'p' as Point to resolve incorrect type inference.
+          points={triangle.map((p: Point) => `${toSvgCoords(p).x},${toSvgCoords(p).y}`).join(' ')}
           className="fill-indigo-500/20 stroke-indigo-500 stroke-2"
         />
       )}

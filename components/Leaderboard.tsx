@@ -77,7 +77,13 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, rank, isCurrentUs
     );
 };
 
-const TopicLeaderCard = ({ subjectName, leader }) => (
+interface TopicLeaderCardProps {
+  subjectName: string;
+  leader: { username: string; score: number };
+}
+
+// Fix: Changed to React.FC to correctly handle props like 'key'.
+const TopicLeaderCard: React.FC<TopicLeaderCardProps> = ({ subjectName, leader }) => (
     <div className="w-full bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
         <h4 className="font-bold text-indigo-600 dark:text-indigo-400 truncate h-12 flex items-center justify-center">{subjectName}</h4>
         <div>

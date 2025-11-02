@@ -3,7 +3,8 @@ import { SUBJECTS, Subject } from '../types.ts';
 import { design } from '../constants/design_system.ts';
 
 // --- SHARED LEARNING COMPONENTS ---
-const ContentPage = ({ title, intro = null, children }) => (
+// Fix: Added optional children prop to resolve TS errors.
+const ContentPage = ({ title, intro = null, children }: { title: any; intro?: any; children?: React.ReactNode }) => (
     <div className={design.learn.contentPage}>
       <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">{title}</h2>
       {intro && <p className={`text-lg ${design.colors.text.muted.light} dark:${design.colors.text.muted.dark} text-center mb-10`}>{intro}</p>}
@@ -11,21 +12,24 @@ const ContentPage = ({ title, intro = null, children }) => (
     </div>
 );
 
-const Section = ({ title, children }) => (
+// Fix: Added optional children prop to resolve TS errors.
+const Section = ({ title, children }: { title: any; children?: React.ReactNode }) => (
     <div>
         <h3 className="text-2xl font-bold mb-4">{title}</h3>
         <div className={design.learn.section}>{children}</div>
     </div>
 );
 
-const Example = ({ title, children, isHebrew = true }) => (
+// Fix: Added optional children prop to resolve TS errors.
+const Example = ({ title, children, isHebrew = true }: { title: any; children?: React.ReactNode; isHebrew?: boolean }) => (
     <div className={`${design.learn.example} ${isHebrew ? 'text-right' : 'text-left'}`}>
         <h4 className="font-bold text-teal-800 dark:text-teal-200 text-lg mb-3">{title}</h4>
         <div className="space-y-2">{children}</div>
     </div>
 );
 
-const Formula = ({ title = null, children, explanation = null }) => (
+// Fix: Added optional children prop to resolve TS errors.
+const Formula = ({ title = null, children, explanation = null }: { title?: any; children?: React.ReactNode; explanation?: any }) => (
      <div className={design.learn.formula}>
         {title && <h3 className="text-xl font-semibold text-indigo-800 dark:text-indigo-200">{title}</h3>}
         <div dir="ltr" className="my-4 p-4 bg-white dark:bg-gray-800 rounded-md text-center shadow-inner min-h-[60px] flex items-center justify-center">
@@ -35,13 +39,15 @@ const Formula = ({ title = null, children, explanation = null }) => (
     </div>
 );
 
-const ImportantNote = ({ children }) => (
+// Fix: Made children optional to fix TS error.
+const ImportantNote = ({ children }: { children?: React.ReactNode }) => (
     <div className={design.learn.importantNote}>
         <p><span className="font-bold">הערה חשובה:</span> {children}</p>
     </div>
 );
 
-const StaticGraph = ({ width=250, height=250, range=5, children, title }) => (
+// Fix: Added optional children prop to resolve TS errors.
+const StaticGraph = ({ width=250, height=250, range=5, children, title }: { width?: number; height?: number; range?: number; children?: React.ReactNode; title: any }) => (
     <div className="flex flex-col items-center">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md">
             {/* Grid & Axes */}
@@ -88,7 +94,8 @@ const Fraction = ({ numerator, denominator }) => (
     </div>
 );
 
-const MathDisplay = ({ variable, children }) => (
+// Fix: Added optional children prop to resolve TS errors.
+const MathDisplay = ({ variable, children }: { variable: any; children?: React.ReactNode }) => (
      <div className="flex items-center justify-center gap-2 text-xl md:text-2xl font-medium text-gray-800 dark:text-gray-100">
         <span>{variable.charAt(0)}<sub>{variable.charAt(1)}</sub> =</span>
         {children}
@@ -291,7 +298,8 @@ const MidpointLearnContent = () => {
 
 // --- NEW LEARNING CONTENT ---
 
-const MathEquation = ({ children, explanation=null }) => (
+// Fix: Made children optional to fix TS error.
+const MathEquation = ({ children, explanation=null }: { children?: React.ReactNode, explanation?: string | null }) => (
     <div className="text-center my-4">
         <div dir="ltr" className="p-4 bg-gray-200 dark:bg-gray-700 rounded-md text-lg md:text-xl font-mono shadow-inner inline-block">
             {children}
@@ -331,32 +339,32 @@ const EquationsWithVariableDenominatorContent = () => (
         </Section>
         <Section title="דוגמה 1: משוואה פשוטה">
             <Example title="פתרו את המשוואה">
-                <MathEquation><Fraction numerator={10} denominator={'x'} /> - 3 = 4</MathEquation>
+                <MathEquation><span><Fraction numerator={10} denominator={'x'} /> - 3 = 4</span></MathEquation>
                 <p><span className="font-bold">1. תחום הגדרה:</span> המכנה הוא x, לכן <b dir="ltr">x &ne; 0</b>.</p>
                 <p><span className="font-bold">2. מכנה משותף:</span> המכנה המשותף הוא <b>x</b>.</p>
                 <p><span className="font-bold">3. כפל במכנה משותף:</span> נכפול את כל המשוואה ב-x:</p>
-                <MathEquation>x &middot; (<Fraction numerator={10} denominator={'x'} /> - 3) = x &middot; 4</MathEquation>
-                <MathEquation>10 - 3x = 4x</MathEquation>
+                <MathEquation><span>x &middot; (<Fraction numerator={10} denominator={'x'} /> - 3) = x &middot; 4</span></MathEquation>
+                <MathEquation>{"10 - 3x = 4x"}</MathEquation>
                 <p><span className="font-bold">4. פתרון:</span> נעביר אגפים:</p>
-                <MathEquation>10 = 7x <span className="mx-4">&rarr;</span> x = <Fraction numerator={10} denominator={7} /></MathEquation>
+                <MathEquation><span>10 = 7x </span><span className="mx-4">&rarr;</span><span> x = </span><Fraction numerator={10} denominator={7} /></MathEquation>
                 <p><span className="font-bold">5. בדיקה:</span> הפתרון <span dir="ltr">x = 10/7</span> אינו 0, ולכן הוא תקין.</p>
             </Example>
         </Section>
         <Section title="דוגמה 2: פתרון שנפסל">
             <Example title="פתרו את המשוואה">
-                <MathEquation><Fraction numerator={'2x'} denominator={'x - 5'} /> - <Fraction numerator={10} denominator={'x - 5'} /> = 3</MathEquation>
+                <MathEquation><span><Fraction numerator={'2x'} denominator={'x - 5'} /> - <Fraction numerator={10} denominator={'x - 5'} /> = 3</span></MathEquation>
                 <p><span className="font-bold">1. תחום הגדרה:</span> המכנה הוא x-5, לכן <b dir="ltr">x &ne; 5</b>.</p>
                 <p><span className="font-bold">2. מכנה משותף:</span> המכנה המשותף הוא <b>x - 5</b>.</p>
                 <p><span className="font-bold">3. כפל ופישוט:</span> מכיוון שיש מכנה זהה, ניתן לחבר את המונים תחילה:</p>
-                <MathEquation><Fraction numerator={'2x - 10'} denominator={'x - 5'} /> = 3</MathEquation>
-                <MathEquation><Fraction numerator={'2(x - 5)'} denominator={'x - 5'} /> = 3</MathEquation>
+                <MathEquation><span><Fraction numerator={'2x - 10'} denominator={'x - 5'} /> = 3</span></MathEquation>
+                <MathEquation><span><Fraction numerator={'2(x - 5)'} denominator={'x - 5'} /> = 3</span></MathEquation>
                 <p>כעת ניתן לצמצם (בהנחה ש-x לא שווה 5):</p>
-                <MathEquation>2 = 3</MathEquation>
+                <MathEquation>{"2 = 3"}</MathEquation>
                 <p>קיבלנו "פסוק שקר" (2 לא שווה 3), מה שאומר שלמשוואה אין פתרון. <br/> דרך אחרת היא לכפול במכנה המשותף:</p>
-                <MathEquation>{'(x-5)'} &middot; <Fraction numerator={'2x - 10'} denominator={'x - 5'} /> = 3 &middot; {'(x-5)'}</MathEquation>
-                <MathEquation>2x - 10 = 3x - 15</MathEquation>
+                <MathEquation><span>{'(x-5)'} &middot; </span><Fraction numerator={'2x - 10'} denominator={'x - 5'} /><span> = 3 &middot; {'(x-5)'}</span></MathEquation>
+                <MathEquation>{"2x - 10 = 3x - 15"}</MathEquation>
                 <p><span className="font-bold">4. פתרון:</span></p>
-                <MathEquation>5 = x</MathEquation>
+                <MathEquation>{"5 = x"}</MathEquation>
                 <ImportantNote>
                     <b>שימו לב!</b> קיבלנו פתרון <b dir="ltr">x = 5</b>.
                 </ImportantNote>
