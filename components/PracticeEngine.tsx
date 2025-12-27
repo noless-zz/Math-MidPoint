@@ -9,11 +9,8 @@ import { StarIcon } from './icons.tsx';
 
 /**
  * Renders text with math formatting, specifically turning x^n or numbers^n into superscripts.
- * It stops at the first non-alphanumeric character (like space, +, -, etc.)
  */
 const MathRenderer: React.FC<{ text: string; className?: string }> = ({ text, className = "" }) => {
-    // Regex matches '^' followed by one or more alphanumeric characters
-    // Using a capture group so split includes the matched parts
     const parts = text.split(/(\^[a-zA-Z0-9]+)/g);
     return (
         <span className={className}>
@@ -213,7 +210,6 @@ const TextAnswerInput: React.FC<{ value: string, onChange: (v: string) => void, 
     const inputRef = useRef<HTMLInputElement>(null);
     const [cursorPos, setCursorPos] = useState(0);
 
-    // Determines if the cursor is currently "inside" a superscript (after a ^ and before a space)
     const isInsideExponent = useCallback(() => {
         const slice = value.slice(0, cursorPos);
         const lastCaret = slice.lastIndexOf('^');
@@ -231,11 +227,9 @@ const TextAnswerInput: React.FC<{ value: string, onChange: (v: string) => void, 
         let newPos: number;
 
         if (isInsideExponent()) {
-            // "Exit" superscript mode by adding a space
             newValue = value.slice(0, start) + ' ' + value.slice(end);
             newPos = start + 1;
         } else {
-            // "Enter" superscript mode by adding ^
             newValue = value.slice(0, start) + '^' + value.slice(end);
             newPos = start + 1;
         }
@@ -357,7 +351,6 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
   );
 };
 
-// --- NEW COMPONENT FOR DEBUGGING ---
 const CheatSheet: React.FC<{ solution: any }> = ({ solution }) => {
     const renderSolution = () => {
         if (typeof solution === 'string') return <MathRenderer text={solution} />;
@@ -408,29 +401,27 @@ const PracticeSession = ({ config, user, updateUser, onBack }) => {
         let isCorrect = false;
         const { solution } = currentQuestion;
 
+        // Robust checking for 'in' operator to avoid TypeError on primitive values
         if (typeof solution === 'object' && solution !== null && 'value' in solution) {
-            // Equation solution (single or multiple values)
             const userValues = multiAnswers.map(v => parseFloat(v)).filter(v => !isNaN(v)).sort((a,b)=>a-b);
             const solValues = [...(solution.value || [])].sort((a,b)=>a-b);
             if (userValues.length === solValues.length) {
                 isCorrect = userValues.every((v, i) => Math.abs(v - solValues[i]) < 0.02);
             }
         } else if (typeof solution === 'object' && solution !== null && 'x' in solution) {
-            // Point solution
-            if (userAnswer && 'x' in userAnswer) {
-                isCorrect = Math.abs(userAnswer.x - solution.x) < 0.01 && Math.abs(userAnswer.y - solution.y) < 0.01;
+            // Point solution - verify userAnswer is an object before using 'in'
+            if (userAnswer && typeof userAnswer === 'object' && 'x' in userAnswer) {
+                isCorrect = Math.abs(userAnswer.x - (solution as Point).x) < 0.01 && Math.abs(userAnswer.y - (solution as Point).y) < 0.01;
             }
         } else if (typeof solution === 'object' && solution !== null && 'm' in solution) {
-            // Line solution
-            if (userAnswer && 'm' in userAnswer) {
-                isCorrect = Math.abs(userAnswer.m - solution.m) < 0.01 && Math.abs(userAnswer.b - solution.b) < 0.01;
+            // Line solution - verify userAnswer is an object before using 'in'
+            if (userAnswer && typeof userAnswer === 'object' && 'm' in userAnswer) {
+                isCorrect = Math.abs(userAnswer.m - (solution as LineEquationSolution).m) < 0.01 && Math.abs(userAnswer.b - (solution as LineEquationSolution).b) < 0.01;
             }
         } else if (typeof solution === 'number') {
             const val = parseFloat(userAnswer);
             isCorrect = !isNaN(val) && Math.abs(val - solution) < 0.01;
         } else if (typeof solution === 'string') {
-            // Normalize spaces for text comparison
-            // Normalize exponents: convert Unicode ² and ³ to ^2 and ^3 for comparison
             const normalize = (s: string) => s.replace(/\s+/g, '').replace(/²/g, '^2').replace(/³/g, '^3').toLowerCase();
             isCorrect = normalize(userAnswer || '') === normalize(solution);
         }
@@ -459,7 +450,6 @@ const PracticeSession = ({ config, user, updateUser, onBack }) => {
     const renderAnswerInput = () => {
         if (!currentQuestion) return null;
 
-        // 1. MCQ or Quadrant questions
         if (currentQuestion.type.includes('MCQ') || currentQuestion.type === 'IDENTIFY_QUADRANT') {
             return (
                 <div className="grid grid-cols-2 gap-4 mt-4">
@@ -476,27 +466,25 @@ const PracticeSession = ({ config, user, updateUser, onBack }) => {
             );
         }
 
-        // 2. Line equation specific (must come before generic EQUATION check)
         if (currentQuestion.type === 'FIND_LINE_EQUATION' || currentQuestion.type === 'FIND_TANGENT_EQUATION') {
             return <LineEquationInput value={userAnswer || {}} onChange={setUserAnswer} />;
         }
 
-        // 3. General Algebraic Equations (Solving for x)
         if (currentQuestion.type === 'SOLVE_QUADRATIC_EQUATION' || currentQuestion.type.includes('EQUATION')) {
             return <MultiSolutionInput values={multiAnswers} onChange={setMultiAnswers} />;
         }
 
-        // 4. Coordinate points
-        if (currentQuestion.type.includes('POINT')) {
+        // Expanded check to include all point-returning types
+        if (currentQuestion.type.includes('POINT') || 
+            currentQuestion.type === 'IDENTIFY_COORDINATES' || 
+            currentQuestion.type === 'FIND_INTERSECTION_POINT') {
             return <PointInput value={userAnswer || {}} onChange={setUserAnswer} />;
         }
 
-        // 5. Calculus derivatives (Text based)
         if (currentQuestion.type === 'CALCULATE_DERIVATIVE') {
             return <TextAnswerInput value={userAnswer || ''} onChange={setUserAnswer} label="הנגזרת f'(x)" />;
         }
 
-        // 6. Generic text/numeric input
         return <TextAnswerInput value={userAnswer || ''} onChange={setUserAnswer} />;
     };
 
@@ -529,7 +517,8 @@ const PracticeSession = ({ config, user, updateUser, onBack }) => {
                 
                 {currentQuestion.points && (
                     <div className="mb-8 overflow-hidden rounded-2xl">
-                        <CoordinatePlane points={currentQuestion.points} />
+                        {/* Ensure visual questions can be answered by clicking the plane */}
+                        <CoordinatePlane points={currentQuestion.points} onClick={setUserAnswer} userAnswer={userAnswer} />
                     </div>
                 )}
 
