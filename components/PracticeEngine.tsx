@@ -4,7 +4,6 @@ import { generateQuestion } from '../services/exerciseGenerator.ts';
 import CoordinatePlane from './CoordinatePlane.tsx';
 import { design } from '../constants/design_system.ts';
 import { StarIcon } from './icons.tsx';
-import { GoogleGenAI } from '@google/genai';
 
 // --- HELPER & VISUAL COMPONENTS ---
 
@@ -65,13 +64,11 @@ const ColoredPointDisplay: React.FC<{ point: Point }> = ({ point }) => (
     </span>
 );
 
-// --- NEW EXPLANATION RENDERER ---
 const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ step, index }) => {
-    const parts = step.split(/:(.*)/s); // Split on the first colon
+    const parts = step.split(/:(.*)/s);
     const textPart = parts.length > 1 ? parts[0].trim() + ':' : step;
     const contentPart = parts.length > 1 ? parts[1].trim() : null;
 
-    // Heuristic to check if the content is a mathematical expression to be highlighted
     const isMathContent = contentPart && (
         contentPart.includes('x') || 
         contentPart.includes('=') || 
@@ -79,17 +76,14 @@ const ExplanationStepDisplay: React.FC<{ step: string, index: number }> = ({ ste
         contentPart.includes('(') || 
         contentPart.includes(')') ||
         contentPart.includes('²') ||
-        /^\s*[-.m\d]/.test(contentPart) // Starts with space, then -, ., m, or digit
+        /^\s*[-.m\d]/.test(contentPart)
     );
-
 
     return (
         <div className="flex items-start gap-x-4 p-4">
-            {/* Step Number */}
             <div className="flex-shrink-0 w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-md mt-1">
                 {index + 1}
             </div>
-            {/* Content */}
             <div className="flex-grow">
                 <p className="font-semibold text-gray-800 dark:text-gray-200">{textPart}</p>
                 {contentPart && (
@@ -117,33 +111,20 @@ const ExplanationRenderer: React.FC<{ steps: string[], title: string }> = ({ ste
     </div>
 );
 
-// --- PRACTICE-SPECIFIC INPUT & DISPLAY COMPONENTS ---
-
 const inputBaseStyle = "block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/20 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition-colors";
 
-const SolutionInput: React.FC<{ values: string[], onChange: (vals: string[]) => void }> = ({ values, onChange }) => {
+const MultiSolutionInput: React.FC<{ values: string[], onChange: (vals: string[]) => void }> = ({ values, onChange }) => {
     const handleValueChange = (index: number, newValue: string) => {
         const newValues = [...values];
         newValues[index] = newValue;
         onChange(newValues);
     };
-
-    const addInput = () => {
-        onChange([...values, '']);
-    };
-
-    const removeInput = (index: number) => {
-        if (values.length > 1) {
-            onChange(values.filter((_, i) => i !== index));
-        }
-    };
-    
     return (
         <div className="mt-4 space-y-3">
             <label className="font-bold text-gray-800 dark:text-gray-200">פתרון (x)</label>
             {values.map((value, index) => (
                 <div key={index} className="flex items-center gap-2">
-                    <span className="font-mono text-xl text-gray-500 dark:text-gray-400">x =</span>
+                    <span className="font-mono text-xl text-gray-500 dark:text-gray-400">x{values.length > 1 ? index+1 : ''} =</span>
                     <input 
                         type="number"
                         step="any"
@@ -152,22 +133,13 @@ const SolutionInput: React.FC<{ values: string[], onChange: (vals: string[]) => 
                         className={`${inputBaseStyle} flex-grow text-center`}
                         dir="ltr"
                     />
-                    <button 
-                        onClick={() => removeInput(index)}
-                        className={`p-2 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors ${values.length <= 1 ? 'opacity-0 cursor-default' : ''}`}
-                        title="הסר פתרון"
-                        disabled={values.length <= 1}
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
                 </div>
             ))}
-             <button
-                onClick={addInput}
-                className={`w-full text-sm mt-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-200/50 dark:bg-gray-700/50 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
-            >
-                + הוסף פתרון
-            </button>
+             {values.length < 2 && (
+                <button onClick={() => onChange([...values, ''])} className="w-full text-sm mt-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-200/50 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                    + הוסף פתרון נוסף
+                </button>
+             )}
         </div>
     )
 };
@@ -198,63 +170,12 @@ const LineEquationInput: React.FC<{ value: Partial<LineEquationSolution>, onChan
     </div>
 );
 
-const NumberInput: React.FC<{ value: string, onChange: (n: string) => void, label?: string }> = ({ value, onChange, label = 'תשובה' }) => (
-     <div className="mt-4">
-        <label htmlFor="num-input" className={`font-bold`}>{label}</label>
-        <input id="num-input" type="number" step="any" value={value ?? ''} onChange={(e) => onChange(e.target.value)} className={`${inputBaseStyle} text-center mt-1`} dir="ltr" />
+const TextAnswerInput: React.FC<{ value: string, onChange: (v: string) => void, label?: string }> = ({ value, onChange, label = 'תשובה' }) => (
+    <div className="mt-4">
+        <label className="font-bold">{label}</label>
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className={`${inputBaseStyle} text-center mt-1`} dir="ltr" placeholder="למשל: 3x^2 + 4" />
     </div>
 );
-
-const DomainInput: React.FC<{ values: string[], onChange: (vals: string[]) => void }> = ({ values, onChange }) => {
-    const handleValueChange = (index: number, newValue: string) => {
-        const newValues = [...values];
-        newValues[index] = newValue;
-        onChange(newValues);
-    };
-
-    const addInput = () => {
-        onChange([...values, '']);
-    };
-
-    const removeInput = (index: number) => {
-        if (values.length >= 1) { // Allow removing even the last one
-            onChange(values.filter((_, i) => i !== index));
-        }
-    };
-    
-    return (
-        <div className="mt-6 space-y-3">
-            <label className="font-bold text-gray-800 dark:text-gray-200">תחום הגדרה (ערכים ש-x אינו שווה להם)</label>
-            {values.map((value, index) => (
-                <div key={index} className="flex items-center gap-2">
-                    <span className="font-mono text-xl text-gray-500 dark:text-gray-400">x &ne;</span>
-                    <input 
-                        type="number"
-                        step="any"
-                        value={value}
-                        onChange={(e) => handleValueChange(index, e.target.value)}
-                        className={`${inputBaseStyle} flex-grow text-center`}
-                        dir="ltr"
-                    />
-                    <button 
-                        onClick={() => removeInput(index)}
-                        className={`p-2 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors`}
-                        title="הסר תחום"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                </div>
-            ))}
-             <button
-                onClick={addInput}
-                className={`w-full text-sm mt-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-200/50 dark:bg-gray-700/50 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
-            >
-                + הוסף תחום
-            </button>
-        </div>
-    )
-};
-
 
 const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficulty: Difficulty['id'] }) => void }> = ({ onStart }) => {
   const practiceSubjects = Object.values(SUBJECTS).filter(s => s.practice);
@@ -279,7 +200,6 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
   return (
     <div className={design.layout.card}>
       <h2 className={design.typography.sectionTitle}>הגדרות תרגול</h2>
-      <p className={`${design.colors.text.muted.light} dark:${design.colors.text.muted.dark} text-center mb-6`}>בחר/י נושא אחד או יותר ורמת קושי כדי להתחיל.</p>
       <form onSubmit={handleSubmit} className="space-y-8">
         <div>
           <h3 className="text-xl font-bold mb-4 text-right">נושאים לתרגול</h3>
@@ -292,7 +212,6 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
             ))}
           </div>
         </div>
-
         <div>
           <h3 className="text-xl font-bold mb-4 text-right">רמת קושי</h3>
           <div className="grid grid-cols-3 gap-4">
@@ -304,7 +223,6 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
             ))}
           </div>
         </div>
-
         <button type="submit" disabled={selectedSubjects.length === 0} className={`w-full ${design.components.button.base} ${design.components.button.primary} ${design.components.button.disabled}`}>
           התחל תרגול
         </button>
@@ -315,359 +233,157 @@ const PracticeConfig: React.FC<{ onStart: (config: { subjects: string[]; difficu
 
 const PracticeSession = ({ config, updateUser, onBack }) => {
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-    const [userAnswer, setUserAnswer] = useState<Partial<Point> | string | Partial<LineEquationSolution> | null>(null);
-    const [equationSolutions, setEquationSolutions] = useState<string[]>(['']);
-    const [userDomain, setUserDomain] = useState<string[]>(['']);
+    const [userAnswer, setUserAnswer] = useState<any>(null);
+    const [multiAnswers, setMultiAnswers] = useState<string[]>(['']);
     const [feedback, setFeedback] = useState<{ isCorrect: boolean; detailedExplanation: string[]; earnedScore: number } | null>(null);
     const [attempts, setAttempts] = useState(0);
     const [potentialScore, setPotentialScore] = useState(0);
     const [selectedMcq, setSelectedMcq] = useState<number | string | null>(null);
-    const [revealedSteps, setRevealedSteps] = useState<string[]>([]);
-    
-    const isPoint = (val: any): val is Point => typeof val === 'object' && val !== null && 'x' in val && 'y' in val;
-    const isPointAnswer = (val: any): val is {x: any, y: any} => typeof val === 'object' && val !== null && 'x' in val && 'y' in val;
-    const isEquationSolution = (sol: any): sol is EquationSolution =>  typeof sol === 'object' && sol !== null && 'value' in sol && 'domain' in sol;
-    const isLineEquationSolution = (sol: any): sol is LineEquationSolution => typeof sol === 'object' && sol !== null && 'm' in sol && 'b' in sol;
-    const isLineEqSolutionAnswer = (val: any): val is {m: any, b: any} => typeof val === 'object' && val !== null && 'm' in val && 'b' in val;
-    
-    const lineColors = ['stroke-blue-500', 'stroke-red-500'];
-
-    const lineEqToPoints = (line: LineEquation, range: number = 20) => {
-        return {
-            p1: { x: -range, y: line.m * -range + line.b },
-            p2: { x: range, y: line.m * range + line.b }
-        }
-    }
 
     const setupNewQuestion = useCallback((question: Question) => {
         setCurrentQuestion(question);
         setFeedback(null);
         setAttempts(0);
         setSelectedMcq(null);
-        setRevealedSteps([]);
-
-        // Reset answers based on new question type
-        if (isEquationSolution(question.solution)) {
-            setEquationSolutions(['']);
-            setUserDomain(question.difficulty === 'hard' ? [''] : []);
-            setUserAnswer(null);
-        } else if (isLineEquationSolution(question.solution)) {
-            setUserAnswer({ m: undefined, b: undefined });
-            setEquationSolutions(['']);
-            setUserDomain([]);
-        } else {
-             setUserAnswer(null);
-             setEquationSolutions(['']);
-             setUserDomain([]);
-        }
-
-        const difficulty = DIFFICULTY_LEVELS[question.difficulty.toUpperCase()];
-        const baseScore = Math.round(10 * difficulty.multiplier);
-        setPotentialScore(baseScore);
+        setMultiAnswers(['']);
+        setUserAnswer(null);
+        
+        const difficulty = DIFFICULTY_LEVELS[question.difficulty.toUpperCase()] || DIFFICULTY_LEVELS.MEDIUM;
+        setPotentialScore(Math.round(10 * difficulty.multiplier));
     }, []);
     
     useEffect(() => {
-        if(config) {
-            setupNewQuestion(generateQuestion(config));
-        }
+        if(config) { setupNewQuestion(generateQuestion(config)); }
     }, [config, setupNewQuestion]);
 
     const checkAnswer = () => {
         if (!currentQuestion) return;
-        
         let isCorrect = false;
         const { solution } = currentQuestion;
 
-        if (isLineEquationSolution(solution)) {
-            if (isLineEqSolutionAnswer(userAnswer) && typeof userAnswer.m === 'number' && typeof userAnswer.b === 'number') {
-                if (Math.abs(userAnswer.m - solution.m) < 0.01 && Math.abs(userAnswer.b - solution.b) < 0.01) {
-                    isCorrect = true;
-                }
+        if (typeof solution === 'object' && solution !== null && 'value' in solution) {
+            // Equation solution (single or multiple values)
+            const userValues = multiAnswers.map(v => parseFloat(v)).filter(v => !isNaN(v)).sort((a,b)=>a-b);
+            const solValues = [...(solution.value || [])].sort((a,b)=>a-b);
+            if (userValues.length === solValues.length) {
+                isCorrect = userValues.every((v, i) => Math.abs(v - solValues[i]) < 0.02);
             }
-        } else if (isEquationSolution(solution)) {
-            const userDomainNumbers = userDomain.filter(d => d.trim() !== '').map(d => parseFloat(d)).sort((a, b) => a - b);
-            const solutionDomain = [...solution.domain].sort((a,b)=>a-b);
-            
-            const domainCorrect = currentQuestion.difficulty !== 'hard' || (userDomainNumbers.length === solutionDomain.length && userDomainNumbers.every((val, index) => Math.abs(val - solutionDomain[index]) < 0.01));
-
-            const userValues = equationSolutions
-                .map(val => val.trim())
-                .filter(val => val !== '')
-                .map(val => parseFloat(val))
-                .filter(val => !isNaN(val))
-                .sort((a, b) => a - b);
-
-            const solutionValues = solution.value === null ? [] : [...solution.value].sort((a,b)=>a-b);
-            
-            let valueCorrect = false;
-
-            if (solution.value === null) {
-                valueCorrect = userValues.length === 0;
-            } else if (currentQuestion.difficulty === 'hard') {
-                // For hard, we need an exact match of all solutions
-                if (userValues.length === solutionValues.length) {
-                     valueCorrect = userValues.every((val, index) => Math.abs(val - solutionValues[index]) < 0.015);
-                }
-            } else {
-                // For easy/medium, user enters one solution, check if it's one of the correct ones.
-                if (userValues.length === 1) {
-                    valueCorrect = solution.value.some(v => Math.abs(userValues[0] - v) < 0.015);
-                }
+        } else if (typeof solution === 'object' && solution !== null && 'x' in solution) {
+            // Point solution
+            if (userAnswer && 'x' in userAnswer) {
+                isCorrect = Math.abs(userAnswer.x - solution.x) < 0.01 && Math.abs(userAnswer.y - solution.y) < 0.01;
             }
-            
-            isCorrect = valueCorrect && domainCorrect;
-
-        } else if (isPoint(solution)) {
-            if (isPointAnswer(userAnswer) && typeof userAnswer.x === 'number' && typeof userAnswer.y === 'number') {
-               if (Math.abs(userAnswer.x - solution.x) < 0.01 && Math.abs(userAnswer.y - solution.y) < 0.01) {
-                  isCorrect = true;
-               }
+        } else if (typeof solution === 'object' && solution !== null && 'm' in solution) {
+            // Line solution
+            if (userAnswer && 'm' in userAnswer) {
+                isCorrect = Math.abs(userAnswer.m - solution.m) < 0.01 && Math.abs(userAnswer.b - solution.b) < 0.01;
             }
         } else if (typeof solution === 'number') {
-            const ua = typeof userAnswer === 'string' ? parseFloat(userAnswer) : userAnswer as number;
-            if (typeof ua === 'number' && !isNaN(ua) && Math.abs(ua - solution) < 0.01) {
-                isCorrect = true;
-            }
+            const val = parseFloat(userAnswer);
+            isCorrect = !isNaN(val) && Math.abs(val - solution) < 0.01;
         } else if (typeof solution === 'string') {
-             if (userAnswer === solution) {
-                isCorrect = true;
-             }
+            // Normalize spaces for text comparison
+            const normalize = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+            isCorrect = normalize(userAnswer || '') === normalize(solution);
         }
-        
-        const newAttempts = attempts + 1;
 
         if (isCorrect) {
-            setFeedback({ isCorrect: true, detailedExplanation: [currentQuestion.explanation, ...currentQuestion.detailedExplanation], earnedScore: potentialScore });
+            setFeedback({ isCorrect: true, detailedExplanation: currentQuestion.detailedExplanation, earnedScore: potentialScore });
             updateUser(potentialScore, 1, currentQuestion.subjectId);
-            setRevealedSteps([]);
-        } else { // Incorrect
-            setAttempts(newAttempts);
-            const allSteps = [currentQuestion.explanation, ...currentQuestion.detailedExplanation];
-            const maxHints = allSteps.length;
-            
-            setPotentialScore(prev => Math.round(prev * 0.75));
-
-            if (newAttempts >= 3 || revealedSteps.length >= maxHints - 1) {
-                 setFeedback({ isCorrect: false, detailedExplanation: allSteps, earnedScore: 0 });
-                 setRevealedSteps([]);
-            } else {
-                setRevealedSteps(allSteps.slice(0, revealedSteps.length + 1));
+        } else {
+            setAttempts(prev => prev + 1);
+            setPotentialScore(prev => Math.round(prev * 0.7));
+            if (attempts >= 2) {
+                setFeedback({ isCorrect: false, detailedExplanation: currentQuestion.detailedExplanation, earnedScore: 0 });
             }
         }
     };
-    
-    const nextQuestion = () => {
-        setupNewQuestion(generateQuestion(config));
-    };
-    
-    const handleMcqSelect = (option: Point | number | string, index: number) => {
-      setUserAnswer(isPoint(option) ? option : String(option));
-      setSelectedMcq(typeof option === 'string' ? option : index);
-    };
-
-    const getSubjectNameFromType = (type: QuestionType): string => {
-        if (type === 'SOLVE_EQUATION_VARIABLE_DENOMINATOR') {
-            return SUBJECTS.EQUATIONS_WITH_VARIABLE_DENOMINATOR.name;
-        }
-        const subjectEntry = Object.values(SUBJECTS).find(s => type.toLowerCase().includes(s.id.split('_')[0]));
-        return subjectEntry ? subjectEntry.name : 'שאלה כללית';
-    };
-    
-    const renderRevealedHints = () => {
-        if (revealedSteps.length === 0 || feedback) return null;
-
-        return (
-            <div className="mt-6 p-6 rounded-xl bg-yellow-100 dark:bg-yellow-900/50">
-                <ExplanationRenderer steps={revealedSteps} title="רמזים:" />
-            </div>
-        );
-    };
-
-    const formatSolution = (solution: Question['solution']) => {
-        if (isLineEquationSolution(solution)) {
-            const bSign = solution.b >= 0 ? '+' : '-';
-            const bAbs = Math.abs(solution.b).toFixed(2).replace(/\.00$/, '');
-            const mStr = solution.m.toFixed(2).replace(/\.00$/, '');
-            return `y = ${mStr}x ${bSign} ${bAbs}`;
-        }
-        if (isEquationSolution(solution)) {
-            const valStr = solution.value === null 
-                ? 'אין פתרון' 
-                : solution.value.map(v => `x = ${v.toFixed(2).replace(/\.0+$/,'').replace(/\.$/,'')}`).join(' או ');
-            const domainStr = solution.domain.length > 0 ? `תחום הגדרה: x ≠ ${solution.domain.join(', x ≠ ')}` : '';
-            return `${valStr}${domainStr ? `, ${domainStr}` : ''}`;
-        }
-        if (isPoint(solution)) return <ColoredPointDisplay point={solution} />;
-        if (typeof solution === 'number') return solution.toFixed(2).replace(/\.00$/, '');
-        return String(solution);
-    };
-    
-    // --- RENDER LOGIC ---
 
     if (!currentQuestion) {
-        return <div className="text-center p-10 font-bold">טוען שאלה...</div>
+        return (
+            <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
+                <p className="text-xl font-semibold text-gray-600 dark:text-gray-400">מכין שאלה עבורך...</p>
+            </div>
+        );
     }
 
-    const isMcq = currentQuestion.type.includes('MCQ') || currentQuestion.type === 'IDENTIFY_QUADRANT';
-    const isVisual = currentQuestion.type.includes('VISUAL');
-    const solutionIsEquation = isEquationSolution(currentQuestion.solution);
-    const solutionIsPoint = isPoint(currentQuestion.solution);
-    const solutionIsLineEq = isLineEquationSolution(currentQuestion.solution);
-    
-    const renderAnswerArea = () => {
-        if (isVisual) {
-            return userAnswer ? <p className="text-center font-semibold mb-2" dir="rtl">הבחירה שלך: <ColoredPointDisplay point={userAnswer as Point} /></p> : null;
-        }
-        if (isMcq) {
+    const renderAnswerInput = () => {
+        if (!currentQuestion) return null;
+        if (currentQuestion.type.includes('MCQ') || currentQuestion.type === 'IDENTIFY_QUADRANT') {
             return (
-                <div className="grid grid-cols-2 gap-4 my-2">
-                    {currentQuestion.options?.map((option, i) => (
-                        <button key={i} onClick={() => handleMcqSelect(option, i)} className={`${design.practice.mcqButton} ${selectedMcq === (typeof option === 'string' ? option : i) ? `ring-2 ${design.pointColors.M.text.replace('text-', 'ring-')}` : ''}`}>
-                            {isPoint(option) ? <ColoredPointDisplay point={option} /> : <span className="font-bold text-lg">{option}</span>}
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                    {currentQuestion.options?.map((opt, i) => (
+                        <button key={i} onClick={() => { setSelectedMcq(i); setUserAnswer(opt); }} className={`${design.practice.mcqButton} ${selectedMcq === i ? 'ring-2 ring-indigo-500' : ''}`}>
+                            {/* FIX: opt can be a Point object, which cannot be rendered directly as a ReactNode. We use ColoredPointDisplay if it's a Point. */}
+                            {typeof opt === 'object' && opt !== null && 'x' in opt ? (
+                                <ColoredPointDisplay point={opt as Point} />
+                            ) : (
+                                String(opt)
+                            )}
                         </button>
                     ))}
                 </div>
             );
         }
-        if (solutionIsLineEq) {
-            return <LineEquationInput value={userAnswer as Partial<LineEquationSolution> || {}} onChange={setUserAnswer} />;
+        if (currentQuestion.type === 'SOLVE_QUADRATIC_EQUATION' || currentQuestion.type.includes('EQUATION')) {
+            return <MultiSolutionInput values={multiAnswers} onChange={setMultiAnswers} />;
         }
-        if (solutionIsEquation) {
-            if (currentQuestion.difficulty === 'hard') {
-                return (
-                    <>
-                        <SolutionInput values={equationSolutions} onChange={setEquationSolutions} />
-                        <DomainInput values={userDomain} onChange={setUserDomain} />
-                    </>
-                );
-            }
-            return (
-                <>
-                    <NumberInput value={equationSolutions[0] || ''} onChange={(val) => setEquationSolutions([val])} label="פתרון (x)" />
-                </>
-            );
+        if (currentQuestion.type.includes('POINT')) {
+            return <PointInput value={userAnswer || {}} onChange={setUserAnswer} />;
         }
-        if (solutionIsPoint) {
-            return <PointInput value={userAnswer as Partial<Point> || {}} onChange={setUserAnswer} />;
+        if (currentQuestion.type.includes('LINE') || currentQuestion.type === 'FIND_TANGENT_EQUATION') {
+            return <LineEquationInput value={userAnswer || {}} onChange={setUserAnswer} />;
         }
-        return <NumberInput value={userAnswer as string || ''} onChange={(val) => setUserAnswer(val)} />;
-    };
-    
-    const isAnswerEmpty = () => {
-        if(solutionIsEquation) {
-            return !equationSolutions || equationSolutions.length === 0 || equationSolutions.every(s => s.trim() === '');
+        if (currentQuestion.type === 'CALCULATE_DERIVATIVE') {
+            return <TextAnswerInput value={userAnswer || ''} onChange={setUserAnswer} label="הנגזרת f'(x)" />;
         }
-         if (solutionIsLineEq) {
-            const ans = userAnswer as Partial<LineEquationSolution>;
-            return ans.m === undefined || ans.b === undefined;
-        }
-        return userAnswer === null;
-    }
-
-    const shouldShowPlane = !!currentQuestion?.points || !!currentQuestion?.lines;
-    const planeIsInteractive = currentQuestion?.type === 'FIND_MIDPOINT_VISUAL';
-
-    const handlePlaneClick = (point: Point) => {
-        if (planeIsInteractive) {
-            setUserAnswer(point);
-        }
+        return <TextAnswerInput value={userAnswer || ''} onChange={setUserAnswer} />;
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-4">
-             <div className="flex justify-between items-center px-2">
-                 <button onClick={onBack} className="text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-600">
-                    חזרה להגדרות
-                </button>
-                <div className="text-sm font-semibold text-blue-800 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-4 py-2 rounded-full">
-                    ניסיונות שנותרו: <span className="font-black">{3 - attempts}</span>
+        <div className="max-w-3xl mx-auto">
+            <div className="flex justify-between mb-4">
+                <button onClick={onBack} className="text-indigo-600 font-bold">חזרה</button>
+                <div className="flex items-center gap-2">
+                    <StarIcon className="h-5 w-5 text-yellow-500" />
+                    <span>{potentialScore} נק'</span>
                 </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700/50">
-                <div className="flex flex-col text-right">
-                    <h3 className="text-base font-semibold text-gray-600 dark:text-gray-400">{getSubjectNameFromType(currentQuestion.type)}:</h3>
-                    
-                    <div className={`grid grid-cols-1 ${shouldShowPlane ? 'lg:grid-cols-2' : ''} gap-x-8 items-start`}>
-                        {/* Main content: question text and inputs */}
-                        <div className={!shouldShowPlane ? 'lg:col-span-2' : ''}>
-                            <div className="my-4 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                                <div className="text-xl md:text-2xl font-bold my-2 text-gray-800 dark:text-gray-100">
-                                    <ColoredText text={currentQuestion.question} />
-                                </div>
-                                {currentQuestion.equationParts && <EquationDisplay parts={currentQuestion.equationParts} />}
-                            </div>
-                            
-                            {!feedback ? (
-                                <>
-                                    {renderAnswerArea()}
-                                    {renderRevealedHints()}
-                                </>
-                            ) : null}
-                        </div>
-
-                        {/* Coordinate Plane */}
-                        {shouldShowPlane && (
-                            <div className="my-4">
-                                <CoordinatePlane
-                                    points={currentQuestion.points}
-                                    lines={currentQuestion.lines?.map((l, i) => ({
-                                        ...lineEqToPoints(l),
-                                        color: lineColors[i % lineColors.length]
-                                    }))}
-                                    onClick={planeIsInteractive ? handlePlaneClick : undefined}
-                                    userAnswer={planeIsInteractive && isPoint(userAnswer) ? userAnswer : undefined}
-                                    solution={feedback && isPoint(currentQuestion.solution) ? currentQuestion.solution : undefined}
-                                />
-                            </div>
-                        )}
+            <div className={design.layout.card}>
+                <h3 className="text-xl font-bold mb-4">{currentQuestion.question}</h3>
+                {currentQuestion.equationParts && <EquationDisplay parts={currentQuestion.equationParts} />}
+                
+                {currentQuestion.points && (
+                    <div className="mb-6">
+                        <CoordinatePlane points={currentQuestion.points} />
                     </div>
-                       
-                    {!feedback ? (
-                        <button onClick={checkAnswer} disabled={isAnswerEmpty()} className={`w-full mt-8 py-3 px-4 rounded-lg font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed`}>
-                            בדוק/י תשובה
+                )}
+
+                {!feedback ? (
+                    <>
+                        {renderAnswerInput()}
+                        <button onClick={checkAnswer} className={`w-full mt-6 ${design.components.button.base} ${design.components.button.primary}`}>
+                            בדוק תשובה
                         </button>
-                    ) : (
-                        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-right">
-                           <h3 className="text-2xl font-bold mb-2">{feedback.isCorrect ? 'כל הכבוד!' : 'תשובה שגויה'}</h3>
-                           
-                           {!feedback.isCorrect && (
-                                <p className="mb-6 text-lg">
-                                    התשובה הנכונה היא: <span className="font-bold">{formatSolution(currentQuestion.solution)}</span>
-                                </p>
-                            )}
-
-                            <div className="mt-2">
-                               <ExplanationRenderer 
-                                    steps={feedback.detailedExplanation} 
-                                    title="דרך הפתרון:"
-                                />
-                            </div>
-
-                           {feedback.isCorrect && feedback.earnedScore > 0 && (
-                               <div className="flex items-center justify-center gap-2 font-bold bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 p-3 rounded-lg mt-6">
-                                   <StarIcon className={`h-6 w-6 text-yellow-500`} />
-                                   <span>+{feedback.earnedScore} נקודות</span>
-                               </div>
-                           )}
-                           <button onClick={nextQuestion} className={`w-full mt-6 ${design.components.button.base} ${feedback.isCorrect ? `bg-green-500 hover:bg-green-600` : `bg-blue-500 hover:bg-blue-600`} text-white`}>
-                               השאלה הבאה
-                           </button>
-                        </div>
-                    )}
-                </div>
+                    </>
+                ) : (
+                    <div className={`mt-6 p-6 rounded-xl ${feedback.isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
+                        <h4 className="text-xl font-bold mb-2">{feedback.isCorrect ? 'כל הכבוד!' : 'אופס...'}</h4>
+                        <ExplanationRenderer steps={feedback.detailedExplanation} title="דרך הפתרון:" />
+                        <button onClick={() => setupNewQuestion(generateQuestion(config))} className={`w-full mt-6 ${design.components.button.base} ${design.components.button.primary}`}>
+                            השאלה הבאה
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
-
 export default function PracticeEngine({ updateUser }: { updateUser: (s: number, e: number, subjectId: string) => void }) {
     const [config, setConfig] = useState<{ subjects: string[]; difficulty: Difficulty['id'] } | null>(null);
-
-    if (!config) {
-        return <PracticeConfig onStart={setConfig} />;
-    }
-    
+    if (!config) return <PracticeConfig onStart={setConfig} />;
     return <PracticeSession config={config} updateUser={updateUser} onBack={() => setConfig(null)} />;
 }

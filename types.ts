@@ -24,7 +24,11 @@ export const SUBJECTS: Record<string, Subject> = {
   MIDPOINT: { id: 'midpoint', name: 'אמצע קטע', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
   TRIANGLE_PROPERTIES: { id: 'triangle_properties', name: 'תכונות משולש', enabled: true, practice: false, category: 'גיאומטריה אנליטית' },
   AREA_CALC: { id: 'area_calc', name: 'חישוב שטח משולש', enabled: true, practice: false, category: 'גיאומטריה אנליטית' },
+  EQUATIONS_NUMERIC_DENOMINATOR: { id: 'equation_numeric_denominator', name: 'משוואות עם מכנה מספרי', enabled: true, practice: true, category: 'אלגברה' },
+  QUADRATIC_EQUATIONS: { id: 'quadratic_equations', name: 'משוואות ריבועיות', enabled: true, practice: true, category: 'אלגברה' },
   EQUATIONS_WITH_VARIABLE_DENOMINATOR: { id: 'equation_variable_denominator', name: 'משוואות עם נעלם במכנה', enabled: true, practice: true, category: 'אלגברה' },
+  DERIVATIVES: { id: 'derivatives', name: 'נגזרות פולינומים', enabled: true, practice: true, category: 'חשבון דיפרנציאלי' },
+  TANGENT: { id: 'tangent', name: 'משיק לפונקציה', enabled: true, practice: true, category: 'חשבון דיפרנציאלי' },
 };
 
 
@@ -52,6 +56,8 @@ export type QuestionType =
   'CALCULATE_AREA' | 'CALCULATE_SLOPE' | 
   'CALCULATE_DISTANCE' | 'FIND_PERPENDICULAR_SLOPE' |
   'FIND_INTERSECTION_POINT' | 'SOLVE_EQUATION_VARIABLE_DENOMINATOR' |
+  'SOLVE_EQUATION_NUMERIC_DENOMINATOR' | 'SOLVE_QUADRATIC_EQUATION' |
+  'CALCULATE_DERIVATIVE' | 'FIND_TANGENT_EQUATION' |
   'IDENTIFY_QUADRANT' | 'FIND_LINE_EQUATION';
 
 export interface LineEquation {
@@ -92,14 +98,12 @@ export interface Question {
   points?: { A?: Point; B?: Point; C?: Point; M?: Point };
   lines?: LineEquation[];
   equationParts?: EquationPart[];
-  // Fix: Add `string` to the solution type. This is required for question types like IDENTIFY_QUADRANT where the solution is text-based.
   solution: Point | number | EquationSolution | LineEquationSolution | string;
-  explanation: string; // This will now be the first-step hint
-  detailedExplanation: string[]; // This is the full, step-by-step solution
+  explanation: string; 
+  detailedExplanation: string[]; 
   difficulty: Difficulty['id'];
   options?: (Point | number | string)[];
   subjectId: string;
 }
 
-// This type can be expanded to include other AI models if needed
 export type AiInstance = GoogleGenAI;
