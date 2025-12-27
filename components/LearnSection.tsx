@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { SUBJECTS, Subject } from '../types.ts';
+import React, { useState, useMemo } from 'react';
+import { SUBJECTS, Subject, Point } from '../types.ts';
 import { design } from '../constants/design_system.ts';
 
 // --- SHARED LEARNING COMPONENTS ---
@@ -49,13 +49,155 @@ const Fraction = ({ numerator, denominator }) => (
     </div>
 );
 
-const MathEquation = ({ children, explanation=null }: { children?: React.ReactNode, explanation?: string | null }) => (
-    <div className="text-center my-4">
-        <div dir="ltr" className="p-4 bg-gray-200 dark:bg-gray-700 rounded-md text-lg md:text-xl font-mono shadow-inner inline-block">
-            {children}
+// --- INTERACTIVE CALCULATORS ---
+
+const InteractiveMidpoint = () => {
+    const [p1, setP1] = useState<Point>({ x: 0, y: 0 });
+    const [p2, setP2] = useState<Point>({ x: 4, y: 6 });
+    const mx = (p1.x + p2.x) / 2;
+    const my = (p1.y + p2.y) / 2;
+
+    return (
+        <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-xl border-2 border-indigo-200">
+            <h4 className="font-bold text-lg mb-4">מחשבון אמצע קטע אינטראקטיבי</h4>
+            <div className="grid grid-cols-2 gap-4 mb-6" dir="ltr">
+                <div className="space-y-2">
+                    <p className="font-bold text-blue-600">Point A</p>
+                    <input type="number" value={p1.x} onChange={e => setP1({...p1, x: Number(e.target.value)})} className="w-full p-2 border rounded" placeholder="x1" />
+                    <input type="number" value={p1.y} onChange={e => setP1({...p1, y: Number(e.target.value)})} className="w-full p-2 border rounded" placeholder="y1" />
+                </div>
+                <div className="space-y-2">
+                    <p className="font-bold text-orange-600">Point B</p>
+                    <input type="number" value={p2.x} onChange={e => setP2({...p2, x: Number(e.target.value)})} className="w-full p-2 border rounded" placeholder="x2" />
+                    <input type="number" value={p2.y} onChange={e => setP2({...p2, y: Number(e.target.value)})} className="w-full p-2 border rounded" placeholder="y2" />
+                </div>
+            </div>
+            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded shadow-inner">
+                <p className="font-bold">שלבי הפתרון:</p>
+                <p dir="ltr" className="font-mono mt-2">xM = ({p1.x} + {p2.x}) / 2 = {mx}</p>
+                <p dir="ltr" className="font-mono">yM = ({p1.y} + {p2.y}) / 2 = {my}</p>
+                <p className="text-xl font-bold text-indigo-600 mt-2">M ({mx}, {my})</p>
+            </div>
         </div>
-        {explanation && <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{explanation}</p>}
-    </div>
+    );
+};
+
+// --- CONTENT PAGES ---
+
+const CoordinateSystemContent = () => (
+    <ContentPage title="מערכת צירים" intro="הבסיס לכל הגיאומטריה האנליטית - איך מוצאים את עצמנו במישור.">
+        <Section title="מהי מערכת צירים?">
+            <p>מערכת הצירים מורכבת משני צירים המאונכים זה לזה:</p>
+            <ul className="list-disc mr-6 space-y-2">
+                <li><span className="font-bold">ציר ה-X:</span> הציר האופקי (ציר המספרים).</li>
+                <li><span className="font-bold">ציר ה-Y:</span> הציר האנכי.</li>
+            </ul>
+        </Section>
+        <Section title="ארבעת הרביעים">
+            <div className="grid grid-cols-2 gap-4 text-center font-bold">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded">רביע ראשון: (+, +)</div>
+                <div className="p-4 bg-teal-50 dark:bg-teal-900/30 rounded">רביע שני: (-, +)</div>
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/30 rounded">רביע שלישי: (-, -)</div>
+                <div className="p-4 bg-orange-50 dark:bg-orange-900/30 rounded">רביע רביעי: (+, -)</div>
+            </div>
+        </Section>
+    </ContentPage>
+);
+
+const StraightLineContent = () => (
+    <ContentPage title="הקו הישר" intro="משוואת הישר היא הקשר המתמטי בין x ל-y עבור כל נקודה על הקו.">
+        <Section title="משוואת הישר המפורשת">
+            <Formula title="y = mx + b">
+                <p>m = שיפוע הישר | b = נקודת החיתוך עם ציר ה-y</p>
+            </Formula>
+        </Section>
+        <Section title="מציאת שיפוע בין שתי נקודות">
+            <p>אם נתונות שתי נקודות (x1, y1) ו-(x2, y2), השיפוע מחושב כך:</p>
+            <Formula>
+                m = <Fraction numerator="y2 - y1" denominator="x2 - x1" />
+            </Formula>
+        </Section>
+        <Example title="דוגמה למציאת משוואה">
+            <p>מצאו משוואת ישר העובר ב-(1, 2) עם שיפוע m=3.</p>
+            <p>נציב בנוסחה: y - y1 = m(x - x1)</p>
+            <p>y - 2 = 3(x - 1)  =>  y = 3x - 1</p>
+        </Example>
+    </ContentPage>
+);
+
+const DistanceContent = () => (
+    <ContentPage title="מרחק בין נקודות" intro="איך מודדים את אורך הקטע המחבר בין שתי נקודות?">
+        <Section title="נוסחת המרחק (דיסטנס)">
+            <p>הנוסחה מבוססת על משפט פיתגורס:</p>
+            <Formula>
+                d = √[(x2 - x1)² + (y2 - y1)²]
+            </Formula>
+        </Section>
+        <Example title="חישוב מרחק">
+            <p>נחשב את המרחק בין (0,0) ל-(3,4):</p>
+            <p>d = √[(3-0)² + (4-0)²] = √[3² + 4²] = √[9 + 16] = √25 = 5</p>
+        </Example>
+    </ContentPage>
+);
+
+const PerpendicularContent = () => (
+    <ContentPage title="ישרים מאונכים" intro="ישרים הנפגשים בזווית של 90 מעלות.">
+        <Section title="כלל המכפלה">
+            <p>שני ישרים הם מאונכים אם ורק אם מכפלת השיפועים שלהם היא -1.</p>
+            <Formula>
+                m1 · m2 = -1
+            </Formula>
+            <p className="mt-4 text-center">במילים אחרות: השיפוע הוא "הופכי ונגדי".</p>
+        </Section>
+        <Example title="דוגמה">
+            <p>אם שיפוע ישר א' הוא 2, שיפוע הישר המאונך לו יהיה -1/2.</p>
+        </Example>
+    </ContentPage>
+);
+
+const VariableDenominatorContent = () => (
+    <ContentPage title="נעלם במכנה" intro="פתרון משוואות בהן ה-x מופיע בתוך שבר.">
+        <Section title="תחום הגדרה">
+            <ImportantNote>
+                אסור למכנה להיות שווה לאפס! לכן השלב הראשון הוא תמיד למצוא מה x לא יכול להיות.
+            </ImportantNote>
+        </Section>
+        <Section title="שיטת הכפל בהצלבה">
+            <p>עבור משוואה מהצורה: A/B = C/D, נשתמש ב- A·D = B·C</p>
+        </Section>
+        <Example title="דוגמה">
+            <p>10 / (x + 2) = 2</p>
+            <p>תחום הגדרה: x ≠ -2</p>
+            <p>נכפול ב-(x+2): 10 = 2(x + 2)  =>  10 = 2x + 4  =>  2x = 6  =>  x = 3</p>
+        </Example>
+    </ContentPage>
+);
+
+const TrianglePropertiesContent = () => (
+    <ContentPage title="תכונות משולש" intro="שימוש בגיאומטריה אנליטית להוכחת תכונות גיאומטריות.">
+        <Section title="תיכון">
+            <p>קטע היוצא מקודקוד לאמצע הצלע שמולו. משתמשים בנוסחת <span className="font-bold text-indigo-600">אמצע קטע</span> למציאתו.</p>
+        </Section>
+        <Section title="גובה">
+            <p>קטע היוצא מקודקוד ומאונך לצלע שמולו. משתמשים בכלל <span className="font-bold text-indigo-600">השיפועים המאונכים</span> (m1*m2=-1).</p>
+        </Section>
+        <Section title="משולש ישר זווית">
+            <p>מוכיחים ששני ישרים מאונכים, או שמתקיים משפט פיתגורס עם המרחקים.</p>
+        </Section>
+    </ContentPage>
+);
+
+const AreaCalcContent = () => (
+    <ContentPage title="שטח משולש" intro="איך מחשבים שטח במערכת צירים?">
+        <Section title="הנוסחה הבסיסית">
+            <Formula>
+                S = (בסיס · גובה) / 2
+            </Formula>
+        </Section>
+        <ImportantNote>
+            בגיאומטריה אנליטית, הכי קל לבחור כבסיס צלע המקבילה לאחד הצירים (ה-X או ה-Y). במקרה כזה, הגובה הוא פשוט הפרש שיעורי הנקודה השלישית מהצלע.
+        </ImportantNote>
+    </ContentPage>
 );
 
 const QuadraticEquationsContent = () => (
@@ -106,11 +248,24 @@ const DerivativesContent = () => (
                 <p>f(x) = 10  =>  f'(x) = 0</p>
             </Example>
         </Section>
-        <Section title="משיק לפונקציה">
-            <p>שיפוע המשיק לפונקציה בנקודה מסוימת שווה לערך הנגזרת באותה נקודה.</p>
-            <ImportantNote>
+    </ContentPage>
+);
+
+const TangentContent = () => (
+    <ContentPage title="משיק לפונקציה" intro="איך מוצאים משוואת ישר ש'נוגע' בפונקציה בנקודה אחת?">
+        <Section title="שיפוע המשיק">
+            <p>שיפוע המשיק לפונקציה בנקודה מסוימת (x₀) שווה לערך הנגזרת באותה נקודה.</p>
+            <Formula>
                 m = f'(x₀)
-            </ImportantNote>
+            </Formula>
+        </Section>
+        <Section title="שלבי עבודה">
+            <ol className="list-decimal mr-6 space-y-2">
+                <li>גוזרים את הפונקציה כדי למצוא את f'(x).</li>
+                <li>מציבים את ה-X של הנקודה בנגזרת לקבלת השיפוע m.</li>
+                <li>מציבים את ה-X בפונקציה המקורית לקבלת ה-Y של הנקודה.</li>
+                <li>מוצאים משוואת ישר לפי נקודה ושיפוע.</li>
+            </ol>
         </Section>
     </ContentPage>
 );
@@ -128,8 +283,11 @@ const MidpointLearnContent = () => (
                 </Formula>
             </div>
         </Section>
+        <InteractiveMidpoint />
     </ContentPage>
 );
+
+// --- MAIN LEARN COMPONENT ---
 
 export default function LearnSection() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
@@ -148,15 +306,18 @@ export default function LearnSection() {
   const renderContent = () => {
     if (!selectedSubject) return null;
     switch(selectedSubject.id) {
-        case SUBJECTS.MIDPOINT.id:
-            return <MidpointLearnContent />;
-        case SUBJECTS.QUADRATIC_EQUATIONS.id:
-            return <QuadraticEquationsContent />;
-        case SUBJECTS.EQUATIONS_NUMERIC_DENOMINATOR.id:
-            return <NumericDenominatorContent />;
-        case SUBJECTS.DERIVATIVES.id:
-        case SUBJECTS.TANGENT.id:
-            return <DerivativesContent />;
+        case SUBJECTS.MIDPOINT.id: return <MidpointLearnContent />;
+        case SUBJECTS.COORDINATE_SYSTEM.id: return <CoordinateSystemContent />;
+        case SUBJECTS.STRAIGHT_LINE.id: return <StraightLineContent />;
+        case SUBJECTS.DISTANCE.id: return <DistanceContent />;
+        case SUBJECTS.PERPENDICULAR_LINES.id: return <PerpendicularContent />;
+        case SUBJECTS.TRIANGLE_PROPERTIES.id: return <TrianglePropertiesContent />;
+        case SUBJECTS.AREA_CALC.id: return <AreaCalcContent />;
+        case SUBJECTS.QUADRATIC_EQUATIONS.id: return <QuadraticEquationsContent />;
+        case SUBJECTS.EQUATIONS_NUMERIC_DENOMINATOR.id: return <NumericDenominatorContent />;
+        case SUBJECTS.EQUATIONS_WITH_VARIABLE_DENOMINATOR.id: return <VariableDenominatorContent />;
+        case SUBJECTS.DERIVATIVES.id: return <DerivativesContent />;
+        case SUBJECTS.TANGENT.id: return <TangentContent />;
         default:
             return (
                 <div className={design.layout.card}>
@@ -197,7 +358,7 @@ export default function LearnSection() {
   }
 
   return (
-    <div>
+    <div className="pb-20">
       <button 
         onClick={() => setSelectedSubject(null)}
         className={`mb-6 inline-flex items-center ${design.components.button.base.replace('py-3', 'py-2')} ${design.components.button.secondary}`}

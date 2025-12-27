@@ -22,7 +22,7 @@ export default function App() {
       case View.Learn:
         return <LearnSection />;
       case View.Practice:
-        return <PracticeEngine updateUser={updateUser} />;
+        return <PracticeEngine user={user} updateUser={updateUser} />;
       case View.Leaderboard:
         return <Leaderboard currentUser={user} />;
       case View.Dashboard:
