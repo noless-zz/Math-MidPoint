@@ -22,11 +22,13 @@ export const SUBJECTS: Record<string, Subject> = {
   PERPENDICULAR_LINES: { id: 'perpendicular_lines', name: 'ישרים מאונכים', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
   DISTANCE: { id: 'distance', name: 'מרחק בין נקודות', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
   MIDPOINT: { id: 'midpoint', name: 'אמצע קטע', enabled: true, practice: true, category: 'גיאומטריה אנליטית' },
+  SIMILARITY: { id: 'similarity', name: 'דמיון משולשים (ז.ז)', enabled: true, practice: true, category: 'גיאומטריה' },
   TRIANGLE_PROPERTIES: { id: 'triangle_properties', name: 'תכונות משולש', enabled: true, practice: false, category: 'גיאומטריה אנליטית' },
   AREA_CALC: { id: 'area_calc', name: 'חישוב שטח משולש', enabled: true, practice: false, category: 'גיאומטריה אנליטית' },
   EQUATIONS_NUMERIC_DENOMINATOR: { id: 'equation_numeric_denominator', name: 'משוואות עם מכנה מספרי', enabled: true, practice: true, category: 'אלגברה' },
   QUADRATIC_EQUATIONS: { id: 'quadratic_equations', name: 'משוואות ריבועיות', enabled: true, practice: true, category: 'אלגברה' },
   EQUATIONS_WITH_VARIABLE_DENOMINATOR: { id: 'equation_variable_denominator', name: 'משוואות עם נעלם במכנה', enabled: true, practice: true, category: 'אלגברה' },
+  AVERAGE_CHANGE_RATE: { id: 'avg_change_rate', name: 'קצב שינוי ממוצע', enabled: true, practice: true, category: 'חשבון דיפרנציאלי' },
   DERIVATIVES: { id: 'derivatives', name: 'נגזרות פולינומים', enabled: true, practice: true, category: 'חשבון דיפרנציאלי' },
   TANGENT: { id: 'tangent', name: 'משיק לפונקציה', enabled: true, practice: true, category: 'חשבון דיפרנציאלי' },
 };
@@ -58,7 +60,9 @@ export type QuestionType =
   'FIND_INTERSECTION_POINT' | 'SOLVE_EQUATION_VARIABLE_DENOMINATOR' |
   'SOLVE_EQUATION_NUMERIC_DENOMINATOR' | 'SOLVE_QUADRATIC_EQUATION' |
   'CALCULATE_DERIVATIVE' | 'FIND_TANGENT_EQUATION' |
-  'IDENTIFY_QUADRANT' | 'FIND_LINE_EQUATION';
+  'IDENTIFY_QUADRANT' | 'FIND_LINE_EQUATION' |
+  'CALCULATE_SIMILARITY_RATIO' | 'FIND_MISSING_SIDE_SIMILARITY' |
+  'CALCULATE_AVG_RATE';
 
 export interface LineEquation {
     m: number;
